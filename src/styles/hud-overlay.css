@@ -1,0 +1,12 @@
+/* hud-overlay.css
+ * EXPORTA: #hud b, #mm, #dot, #msg
+ * DEPENDE DE: inventory.css: o @media(#mm) anterior perde para #mm daqui; não reordenar
+ * NÃO PODE ALTERAR: ordem de importação em index.css (a cascata depende dela); o conteúdo é cópia literal do <style> original, linhas 82-88
+ */
+#hud b{color:var(--amb);font-weight:400}
+#mm{position:fixed;right:12px;top:calc(12px + env(safe-area-inset-top,0px));width:96px;height:336px;background:#000a;border:1px solid #55564c;z-index:50;display:none}
+.ing #mm{display:block}
+#dot{position:fixed;width:4px;height:4px;background:#f55;z-index:51;display:none;margin:-1px}
+.ing #dot{display:block}
+#msg{position:fixed;left:50%;bottom:calc(36px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:50;max-width:min(720px,90vw);text-align:center;font:italic 17px/1.5 Georgia,serif;color:#e8e2c8;text-shadow:0 0 8px #000,0 0 3px #000;opacity:0;transition:opacity .4s;pointer-events:none}
+#msg.on{opacity:1}
