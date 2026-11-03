@@ -1,0 +1,21 @@
+/* index.css
+ * EXPORTA: todas as regras do jogo, na ordem original
+ * DEPENDE DE: styles/*.css
+ * NÃO PODE ALTERAR: a ORDEM dos @import: reordenar muda a cascata (ex.: #mm)
+ */
+@import url("tokens.css");
+@import url("base.css");
+@import url("menu.css");
+@import url("cutscene.css");
+@import url("hud.css");
+@import url("inventory.css");
+@import url("combat.css");
+@import url("hud-overlay.css");
+@import url("animations.css");
+@import url("panels.css");
+@import url("elevator.css");
+@import url("combat-transition.css");
+@import url("crate.css");
+@import url("combat-result.css");
+@import url("mobile.css");
+@import url("portrait.css");
