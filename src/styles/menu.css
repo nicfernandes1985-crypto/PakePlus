@@ -1,0 +1,19 @@
+/* menu.css
+ * EXPORTA: #menu, .tv/.bez/.scr, h1, .mi, #mtoast, @keyframes rv
+ * DEPENDE DE: tokens.css
+ * NÃO PODE ALTERAR: ordem de importação em index.css (a cascata depende dela); o conteúdo é cópia literal do <style> original, linhas 12-25
+ */
+#menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 55%,#2a1f19,#080504 70%)}
+.tv{width:min(900px,94vw);height:min(560px,80vh);background:linear-gradient(135deg,#2c2522,#171311);border-radius:20px;padding:26px;border:4px solid #110d0c;box-shadow:0 40px 80px #000,inset 0 4px 10px #fff1;display:flex;gap:16px}
+.bez{flex:1;background:#0a0808;border-radius:15px;padding:14px;box-shadow:inset 0 0 25px #000}
+.scr{height:100%;border-radius:12px;background:radial-gradient(ellipse at 50% 42%,#293b28,#142015 48%,#080d08);display:flex;align-items:center;justify-content:center;text-align:center;box-shadow:inset 0 0 40px #00ff6426}
+.ctl{width:54px;display:flex;flex-direction:column;justify-content:space-around;align-items:center}
+.knob{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#4a3f3a,#1c1512);border:2px solid #0f0b09}
+.grille{width:40px;height:100px;background:repeating-linear-gradient(0deg,#110d0c 0 4px,#251e1b 4px 8px);border-radius:5px}
+h1{font-size:clamp(3rem,8vw,5.6rem);letter-spacing:12px;text-shadow:0 0 14px #96dc9699;animation:rv 1.1s both}
+.sub{font-size:.85rem;color:#7d967d;letter-spacing:4px;text-transform:uppercase;margin:4px 0 26px}
+.mi{font-size:1.5rem;color:var(--dim);letter-spacing:3px;text-transform:uppercase;cursor:pointer;margin:11px 0;padding:2px 18px;transition:.2s}
+.mi.on{color:#e5f5e5;text-shadow:0 0 12px #b4ffb4cc;transform:translateX(8px) scale(1.06)}
+.mi.on:before{content:"> "}
+#mtoast{height:18px;font-size:.75rem;color:#9bb59b;letter-spacing:2px}
+@keyframes rv{from{opacity:0;filter:blur(9px);letter-spacing:22px}}
