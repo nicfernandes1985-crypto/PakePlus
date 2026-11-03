@@ -1,0 +1,13 @@
+/* animations.css
+ * EXPORTA: #tp (teletransporte), @keyframes fl/gl/tt
+ * DEPENDE DE: nada
+ * NÃO PODE ALTERAR: ordem de importação em index.css (a cascata depende dela); o conteúdo é cópia literal do <style> original, linhas 89-96
+ */
+#tp{z-index:400;background:#000;flex-direction:column;text-align:center;letter-spacing:5px;overflow:hidden}
+#tp.on{display:flex;animation:fl 1.9s forwards}
+#tp:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,#0000 0 6px,#8fffc455 6px 8px);animation:gl .12s steps(2) infinite}
+#tp div{position:relative;opacity:0;animation:tt 1.9s forwards;color:#b8ffd8;text-shadow:0 0 12px #5f9}
+#tp .a{font-size:clamp(20px,4vw,36px)}#tp .b{font-size:12px;margin-top:14px;color:#8fb}
+@keyframes fl{0%{background:#000}12%{background:#fff}30%{background:#9fe8c0}55%,100%{background:#000}}
+@keyframes gl{50%{transform:translateX(18px) skewX(8deg)}}
+@keyframes tt{0%,28%{opacity:0}40%,85%{opacity:1}100%{opacity:0}}
