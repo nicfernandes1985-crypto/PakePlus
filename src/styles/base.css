@@ -1,0 +1,8 @@
+/* base.css
+ * EXPORTA: reset global, html/body, overlay .scan
+ * DEPENDE DE: tokens.css (var(--bg), var(--ink))
+ * NÃO PODE ALTERAR: ordem de importação em index.css (a cascata depende dela); o conteúdo é cópia literal do <style> original, linhas 9-11
+ */
+*{margin:0;padding:0;box-sizing:border-box;user-select:none}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Courier New',monospace}
+.scan{position:fixed;inset:0;pointer-events:none;z-index:500;background:linear-gradient(#0000 50%,#0003 50%);background-size:100% 4px;box-shadow:inset 0 0 150px #000d}
