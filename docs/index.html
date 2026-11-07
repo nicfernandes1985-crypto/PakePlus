@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ABISM v1.4.5 — Eichenfeld</title>
+<link rel="stylesheet" href="styles/index.css">
+</head>
+<body>
+<div class="scan"></div>
+<div id="menu"><div class="tv"><div class="bez"><div class="scr"><div>
+<h1>ABISM</h1><p class="sub">1940 - Asilo Nazista</p>
+<div id="mi"></div><div id="mtoast"></div>
+</div></div></div><div class="ctl"><div class="knob"></div><div class="knob"></div><div class="grille"></div></div></div></div>
+<div id="continuePanel" aria-hidden="true"><div class="continueWindow"><h2 id="continueHeading">CONTINUAR</h2><div class="continueActions"><button id="loadSaveButton">CARREGAR</button><button id="deleteSaveButton" class="danger">EXCLUIR SAVE</button></div><button id="continueBack" class="continueBack">VOLTAR</button></div></div>
+<div id="settingsPanel" class="settingsPanel" aria-hidden="true"><div class="settingsWindow">
+ <div class="settingsHead"><span id="settingsHeading">CONFIGURAÇÕES</span><button id="settingsClose" class="settingsClose">VOLTAR</button></div>
+ <label class="settingRow"><span id="languageLabel">LINGUAGEM</span><select id="languageSelect"><option value="pt-BR">Português (Brasil)</option><option value="en-US">English (US)</option></select></label>
+ <div class="settingRow soundRow"><label for="ambientVolume" id="ambientLabel">SOM AMBIENTE</label><div class="soundControl"><input id="ambientVolume" type="range" min="0" max="100" value="50"><output id="ambientValue">50%</output></div></div>
+  <div class="settingRow"><span id="controlModeLabel">CONTROLES</span><div class="controlMode"><button type="button" id="controlPC" data-control-mode="pc">PC · TECLADO</button><button type="button" id="controlMobile" data-control-mode="mobile">MOBILE · BOTÕES</button></div></div>
+</div></div>
+
+<section id="cut" class="ov"><div class="fr">
+<div class="art"><div class="ph" id="ph"></div></div>
+<div class="cp" id="cp"><div class="kk" id="kk"></div><h2 class="tt" id="tt"></h2><p class="tx" id="tx"></p><blockquote class="qq" id="qq" hidden></blockquote></div>
+<div class="ft"><span id="ct"></span><div><button id="sk">PULAR CUTSCENE</button><button id="nx">CONTINUAR ›</button></div></div>
+<div id="pg"></div></div></section>
+
+<div id="tp" class="ov"><div class="a">TELETRANSPORTE</div><div class="b" id="tpt"></div></div>
+<div id="g" aria-label="Mundo 3D de ABISM"></div>
+<div id="hud"></div><canvas id="mm" width="128" height="512"></canvas><div id="dot"></div>
+<div id="mobileControls" aria-label="Controles móveis">
+ <div class="mobilePad" aria-label="Movimentação">
+  <button class="mobileBtn" data-key="w" aria-label="Mover para frente">▲</button>
+  <button class="mobileBtn" data-key="a" aria-label="Mover para esquerda">◀</button>
+  <button class="mobileBtn" data-key="s" aria-label="Mover para trás">▼</button>
+  <button class="mobileBtn" data-key="d" aria-label="Mover para direita">▶</button>
+  <button class="mobileBtn" data-key="shift" aria-label="Correr">CORRER</button>
+  <button class="mobileBtn" data-key="c" aria-label="Agachar (alternar)">AGACHAR · C</button>
+ </div>
+ <div class="mobileActions" aria-label="Ações do jogo">
+  <button class="mobileBtn" data-action="interact">INTERAGIR · E</button>
+  <button class="mobileBtn" data-action="inventory">INVENTÁRIO · I</button>
+  <button class="mobileBtn" data-action="lamp">LUZ · F</button>
+  <button class="mobileBtn" data-action="camera">CÂMERA · L</button>
+  <button class="mobileBtn" data-action="restart">REINICIAR · R</button>
+  <button class="mobileBtn" data-action="menu">MENU · ESC</button>
+ </div>
+</div>
+<div id="orientationPrompt" role="status" aria-live="polite">
+ <div class="orientationCard">
+  <div class="orientationIcon" aria-hidden="true">↻</div>
+  <div class="orientationTitle">GIRE O DISPOSITIVO</div>
+  <p class="orientationText">O modo MOBILE foi feito para jogar na horizontal. Gire o celular para deixá-lo deitado. Se necessário, tente ativar a orientação horizontal pelo botão abaixo.</p>
+  <button id="orientationRetry" type="button">TENTAR HORIZONTAL</button>
+ </div>
+</div>
+<div id="invPanel" aria-hidden="true"><div class="invWindow">
+<div class="invHead"><span id="panelTitle">OPÇÕES DE SOBREVIVÊNCIA</span><button class="invClose" id="invClose">FECHAR [I]</button></div>
+<section id="panelMenu" class="invMenu"><button data-open="inventory">INVENTÁRIO<br><small>36 espaços · arrastar e soltar</small></button><button data-open="equipment">EQUIPAMENTOS<br><small>Roupas, proteção e mãos</small></button><button data-open="talk">FALAR<br><small>Conversar consigo ou com alguém</small></button><button data-open="craft">CRAFTAR<br><small>Combinar recursos</small></button><button data-open="status">STATUS<br><small>Integridade corporal e condição física</small></button></section>
+<section class="invPage" id="page-inventory"><div class="invHint">36 espaços. Arraste um item para outro espaço para reorganizar. Itens iguais ainda não se acumulam.</div><div class="bagGrid" id="bagGrid"></div><p class="invHint" id="itemDescription">Selecione um item para ver sua descrição.</p></section>
+<section class="invPage" id="page-equipment"><div class="invHint">Selecione um espaço ao redor de Karl para equipar ou trocar uma peça.</div><div class="equipLayout"><div class="equipColumn" id="equipLeft"></div><div class="equipPlayer"><div class="equipPlayerImage" role="img" aria-label="Retrato de Karl Weiss"></div><span>KARL WEISS</span></div><div class="equipColumn" id="equipRight"></div></div><p class="invHint" id="equipMessage">Selecione um espaço para equipar.</p><div class="itemGrid" id="equipChoices"></div></section>
+<section class="invPage" id="page-talk"><div class="invHint">Karl tenta manter a própria sanidade conversando consigo mesmo. Se houver alguém por perto, também poderá tentar iniciar uma conversa.</div><div class="itemGrid"><button class="itemBtn" id="talkSelf">Falar consigo mesmo<small>Organizar os pensamentos</small></button><button class="itemBtn" id="talkNearby">Chamar alguém próximo<small>Testar se há alguém disposto a responder</small></button></div><p class="invHint" id="talkMessage">Escolha como Karl deseja falar.</p></section>
+<section class="invPage" id="page-craft"><div class="invHint">Bancada improvisada: receitas disponíveis conforme os recursos encontrados.</div><div id="craftGrid" class="itemGrid"></div></section>
+<section class="invPage" id="page-status"><div class="invHint">CONDIÇÃO FÍSICA DE KARL · A integridade corporal fica disponível aqui e não cobre mais a área dos controles.</div><div id="bodyStatusContent"></div></section>
+<div class="invHint"><button class="invClose" id="backToOptions">‹ VOLTAR ÀS OPÇÕES</button></div></div></div>
+
+<div id="cratePanel" aria-hidden="true"><div class="crateWindow"><div class="crateHead"><span>CONTÊINER · EICHENFELD</span><button class="invClose" id="crateClose">FECHAR [ESC]</button></div><div class="crateMain"><div class="crateStage" id="crateStage" role="button" tabindex="0" aria-label="Abrir caixa"><canvas id="crate3DCanvas" width="720" height="440" aria-label="Visualização tridimensional da caixa"></canvas><div class="crateHand">✋</div><div class="crateHint" id="crateHint">CLIQUE NA CAIXA PARA EXAMINAR O CONTEÚDO</div></div><div><div style="letter-spacing:2px;color:#d6bd86;margin-bottom:10px">ITENS ENCONTRADOS</div><div class="crateLoot" id="crateLoot"><div class="invHint">A caixa ainda está fechada.</div></div><p class="invHint">Clique em cada item para guardá-lo. O espaço do inventário é limitado.</p></div></div></div></div>
+
+<div id="altarPanel" aria-hidden="true"><div class="altarWindow"><div class="altarHead"><span>ALTAR DO DEUS DO ABISMO</span><button class="invClose" id="altarClose">FECHAR [ESC]</button></div><div class="altarSouls">ALMAS <b id="altarSouls">0</b></div><div id="altarTree" class="altarTree"></div><p class="invHint" id="altarMsg"></p></div></div>
+
+<div id="sleepPanel" style="display:none;position:fixed;inset:0;z-index:310;background:#020403ed;align-items:center;justify-content:center;padding:18px">
+ <div style="width:min(520px,94vw);padding:22px;background:#121a13;border:1px solid #899176;box-shadow:0 0 60px #000;text-align:center">
+  <h2 id="sleepTitle" style="font-weight:400;letter-spacing:3px;margin-bottom:12px">DESCANSAR</h2>
+  <p id="sleepText" style="color:#b9c4b2;line-height:1.6;margin-bottom:16px">Antes de dormir, Karl decide jogar pedra, papel e tesoura contra a própria sorte.</p>
+  <div id="rpsChoices" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+   <button class="itemBtn" data-rps="pedra">PEDRA</button><button class="itemBtn" data-rps="papel">PAPEL</button><button class="itemBtn" data-rps="tesoura">TESOURA</button>
+  </div>
+  <div id="sleepHours" style="display:none;gap:8px;justify-content:center;flex-wrap:wrap">
+   <button class="itemBtn" data-hours="1">1 HORA</button><button class="itemBtn" data-hours="4">4 HORAS</button><button class="itemBtn" data-hours="8">8 HORAS</button>
+  </div>
+  <button class="invClose" id="sleepCancel" style="margin-top:18px">CANCELAR</button>
+ </div>
+</div><div id="combatPanel" aria-hidden="true"><div class="combatFrame"><div class="combatTitle">EICHENFELD · ENCONTRO HOSTIL</div><div class="combatMain"><div class="combatArena"><div class="combatBackdrop">PLACEHOLDER · CENÁRIO DE COMBATE</div><div class="combatFloor"></div><div class="combatFigure enemyFigure sprite" aria-hidden="true"></div><div class="combatFigure playerFigure"><img src="assets/karl_back.png" alt="Karl Weiss, de costas" draggable="false"></div><div class="combatNames"><span>KARL WEISS</span><span>CORRUPTED GUARD</span></div></div><div class="combatRight"><div class="combatRosterTitle">INIMIGOS</div><div class="enemyCard"><div class="enemyCardName">CORRUPTED GUARD</div><div class="enemyCardBody">CORPO <b id="enemyTorsoBar">100</b></div><div class="enemyCardBody">MENTE <b>—</b></div><div class="enemyCardBody">STATUS <b id="enemyStatus">—</b></div><div class="enemyLimbGrid" id="enemyLimbGrid"></div></div><div class="combatPlayerStats" id="combatPlayerStats">CORPO 100 · MENTE 95</div></div></div><div class="combatBottom"><div class="combatCommand" id="combatActions"><button id="combatAttack">ATACAR</button><button id="combatSkill">HABILIDADE</button><button id="combatGuard">GUARDAR</button><button id="combatFlee">FUGIR</button><button id="combatItem">ITEM</button></div><div class="combatInfo"><div class="combatLog" id="combatLog">O inimigo bloqueia seu caminho.</div><div class="combatTargets" id="combatTargets"></div></div></div></div></div><div id="consumePopup" style="display:none;position:fixed;z-index:290;left:50%;top:50%;transform:translate(-50%,-50%);background:#101710;border:1px solid #d5b66e;padding:14px 18px;box-shadow:0 12px 45px #000;min-width:190px;text-align:center"><div id="consumeName" style="margin-bottom:12px;color:#e8d9b2"></div><button class="itemBtn" id="consumeUse">USAR / CONSUMIR</button> <button class="itemBtn" id="consumeClose">FECHAR</button></div><div id="msg"></div>
+<div id="combatResult"><div class="resultWindow"><h2 id="resultTitle">COMBATE ENCERRADO</h2><p id="resultDesc"></p><div id="resultLoot"></div><div class="resultActions"><button id="resultContinue">CONTINUAR</button></div></div></div><div id="combatTrans"><div class="tFlash"></div><div class="tBars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="tText">ENCONTRO HOSTIL</div></div>
+<div id="elevPanel" aria-hidden="true"><div class="elevCab" id="elevCab"><div class="elevDoors" id="elevDoors"><i></i><i></i></div><div class="elevInner"><div class="elevDisp"><span id="elevArrow">■</span><b id="elevFloor">1</b></div><div class="elevBtns" id="elevBtns"></div><div id="elevMsg"></div><button id="elevExit">SAIR DO ELEVADOR</button></div></div></div>
+<div id="end" class="ov"><h2 id="eh"></h2><p id="ep"></p><div><button class="btn" id="er">NOVO LAYOUT [R]</button><button class="btn" id="em">MENU [ESC]</button></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
