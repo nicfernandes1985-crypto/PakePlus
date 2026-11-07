@@ -1,0 +1,6 @@
+/* tokens.css
+ * EXPORTA: variáveis :root (--bg,--ink,--dim,--amb), color-scheme
+ * DEPENDE DE: nada
+ * NÃO PODE ALTERAR: ordem de importação em index.css (a cascata depende dela); o conteúdo é cópia literal do <style> original, linhas 8-8
+ */
+:root{--bg:#050404;--ink:#c2d6c2;--dim:#748c74;--amb:#e8b86a;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
