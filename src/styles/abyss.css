@@ -1,0 +1,31 @@
+/* abyss.css
+ * EXPORTA: #altarPanel (Árvore de Habilidades), cena de combate invertida (.combatFloor, .playerFigure/.enemyFigure)
+ * DEPENDE DE: tokens.css, inventory.css (.invClose), combat.css (.combatFigure, .combatArena)
+ * NÃO PODE ALTERAR: ordem em index.css: precisa vir DEPOIS de combat.css para sobrescrever as figuras
+ */
+#altarPanel{display:none;position:fixed;inset:0;z-index:285;background:#050208ee;align-items:center;justify-content:center;padding:14px;color:#d9cfe0;font-family:Georgia,serif}
+#altarPanel.on{display:flex}
+.altarWindow{width:min(760px,96vw);max-height:94vh;overflow:auto;padding:18px;background:linear-gradient(#17101c,#0a0710);border:1px solid #6e3a58;box-shadow:0 0 70px #3a0a2a99}
+.altarHead{display:flex;justify-content:space-between;align-items:center;gap:10px;letter-spacing:3px;border-bottom:1px solid #5a2f49;padding-bottom:10px;margin-bottom:12px;color:#e2c3d6}
+.altarSouls{text-align:center;letter-spacing:3px;color:#c9a0ff;margin-bottom:14px}.altarSouls b{font-size:22px;color:#fff;margin-left:8px}
+.altarTree{display:flex;flex-direction:column;align-items:center}
+.altarRoot{padding:8px 22px;border:1px solid #a03a70;background:#2a0f20;letter-spacing:4px;color:#ff7aa8;position:relative;margin-bottom:26px}
+.altarRoot::after{content:"";position:absolute;left:50%;top:100%;width:1px;height:13px;background:#6e3a58}
+.altarBranches{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;position:relative;padding-top:13px}
+.altarBranches::before{content:"";position:absolute;top:0;left:16.6%;right:16.6%;height:1px;background:#6e3a58}
+.altarNode{position:relative;display:flex;flex-direction:column;gap:6px;text-align:left;padding:12px 10px;border:1px solid #5a4658;background:#150e18;color:#d9cfe0;font:12px/1.4 'Courier New',monospace;cursor:pointer}
+.altarNode::before{content:"";position:absolute;left:50%;top:-13px;width:1px;height:13px;background:#6e3a58}
+.altarNode b{font-size:13px;letter-spacing:1px;color:#f0e4f5}.altarNode small{color:#a99bb0;font-size:11px}.altarNode em{font-style:normal;color:#c9a0ff;letter-spacing:2px;font-size:11px;margin-top:auto}
+.altarNodeType{font-size:9px;letter-spacing:2px;color:#8f7aa0}
+.altarNode.can{border-color:#c9a0ff;box-shadow:0 0 14px #7a3aa855}.altarNode.can:hover{background:#26122e}
+.altarNode.locked{opacity:.55}.altarNode.owned{border-color:#4f9a6a;background:#0e1a13;cursor:default}.altarNode.owned em{color:#7ed8a0}
+@media(max-width:620px){.altarBranches{grid-template-columns:1fr}.altarBranches::before,.altarNode::before{display:none}}
+
+/* ---- Combate: câmera invertida (inimigo de frente, ao centro/alto; Karl de costas, embaixo, sobre o ombro) ---- */
+.combatFloor{position:absolute;left:-20%;right:-20%;bottom:0;height:46%;transform-origin:50% 100%;transform:perspective(420px) rotateX(58deg);background:
+ repeating-linear-gradient(90deg,transparent 0 46px,#7a1f2a66 47px 49px),repeating-linear-gradient(0deg,transparent 0 46px,#7a1f2a66 47px 49px),linear-gradient(#1a0b0d,#3a1217);opacity:.75;pointer-events:none}
+.combatArena .enemyFigure{left:50%;transform:translateX(-50%);width:30%;height:66%;bottom:22%;z-index:1}
+.combatArena .playerFigure{left:4%;bottom:-5%;width:auto;height:76%;aspect-ratio:1151/1276;z-index:3;border:0;background:none;box-shadow:none;padding:0;filter:drop-shadow(0 10px 14px #000c)}
+.playerFigure img{height:100%;width:auto;display:block;image-rendering:pixelated;image-rendering:crisp-edges;pointer-events:none;user-select:none}
+.combatArena .combatNames{top:3%;bottom:auto;z-index:4}
+@media(max-width:620px){.combatArena .playerFigure{height:66%;left:1%}.combatArena .enemyFigure{width:36%;height:56%;bottom:32%}}
