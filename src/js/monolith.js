@@ -38,9 +38,9 @@ $('kk').textContent=s[0];$('tt').textContent=s[1];$('ph').textContent='PLACEHOLD
 $('qq').hidden=!s[4];$('qq').textContent=s[4]||'';$('ct').textContent=`CENA ${String(ci+1).padStart(2,'0')} / ${String(SC.length).padStart(2,'0')}`;
 $('pg').style.width=(ci+1)/SC.length*100+'%';$('nx').textContent=ci==SC.length-1?(language==='en-US'?'ENTER THE ASYLUM ›':'ENTRAR NO ASILO ›'):(language==='en-US'?'CONTINUE ›':'CONTINUAR ›')}
 function startCut(){mode='cut';ci=0;$('cut').classList.add('on');stat(1);showScene()}
-const adv=()=>{if(ci<SC.length-1){ci++;showScene()}else teleport()};
-$('nx').onclick=adv;$('sk').onclick=()=>teleport();
-function toMenu(){stat(0);mode='menu';document.body.classList.remove('ing');$('cut').classList.remove('on');$('end').classList.remove('on');$('tp').classList.remove('on')}
+const adv=()=>{if(NPCModule.cutActive()){NPCModule.adv();return} /* v1.7: o overlay #cut também serve à cutscene do NPC */if(ci<SC.length-1){ci++;showScene()}else teleport()};
+$('nx').onclick=adv;$('sk').onclick=()=>NPCModule.cutActive()?NPCModule.skip():teleport();
+function toMenu(){stat(0);AbyssHome.reset();GuardBattle.close();mode='menu';document.body.classList.remove('ing');$('cut').classList.remove('on');$('end').classList.remove('on');$('tp').classList.remove('on')}
 
 /* ---------- teletransporte ---------- */
 function teleport(){
@@ -54,7 +54,7 @@ function teleport(){
 }
 
 /* ---------- geração procedural ---------- */
-let fleeGrace=0;
+let fleeGrace=0,_hudCache='';
 let T,K,OB,OBJ,RM,P,seed,have,expl,mmc=$('mm').getContext('2d'),elapsed,curB,guard,inventory=Array(36).fill(null),selectedSlot=null,hunger=100,hungerClock=0,thirst=100,thirstClock=0,sleep=100,sleepClock=0,rats=[],roaches=[],burrows=[],organicMatter=[],populations={rats:24,roaches:36},ecoClock=0,lastSave=0,bodyHP={head:35,torso:100,neck:45,shoulders:60,leftArm:65,rightArm:65,leftLeg:75,rightLeg:75,feet:55};
 let equipped={};
 /* ---------- arquitetura modular ABISM ----------
@@ -63,7 +63,7 @@ let equipped={};
 const ABISM=(()=>{
  const listeners=new Map();
  const Events={on(name,fn){if(!listeners.has(name))listeners.set(name,new Set());listeners.get(name).add(fn);return()=>listeners.get(name)?.delete(fn)},emit(name,payload){for(const fn of listeners.get(name)||[])try{fn(payload)}catch(err){console.error('ABISM event:',name,err)}}};
- const Data={items:Object.freeze({lantern:{id:'lantern',name:'Lamparina',type:'tool',stackable:false},knife:{id:'knife',name:'Faca',type:'weapon',damage:18,stackable:false},ratMeat:{id:'rat_meat',name:'Carne de rato',type:'food'},roach:{id:'roach',name:'Barata',type:'food'}}),recipes:Object.freeze([]),enemies:Object.freeze({corruptedGuard:{id:'corrupted_guard',name:'Corrupned Guard'}})};
+ const Data={items:Object.freeze({lantern:{id:'lantern',name:'Lamparina',type:'tool',stackable:false},knife:{id:'knife',name:'Faca',type:'weapon',damage:18,stackable:false},ratMeat:{id:'rat_meat',name:'Carne de rato',type:'food'},roach:{id:'roach',name:'Barata',type:'food'}}),recipes:Object.freeze([]),enemies:Object.freeze({corruptedGuard:{id:'corrupted_guard',name:'Corrupted Guard'}})};
  const Inventory={maxStack:999,add(slots,item,amount=1){if(!item)return false;let left=Math.max(1,amount|0);if(item.stackable!==false){for(const slot of slots){if(slot&&slot.name===item.name&&slot.type===item.type&&(slot.desc||'')===(item.desc||'')){const moved=Math.min(this.maxStack-(slot.count||1),left);slot.count=(slot.count||1)+moved;left-=moved;if(!left)return true}}}while(left>0){const i=slots.findIndex(v=>v===null);if(i<0)return false;const count=Math.min(this.maxStack,left);slots[i]={...item,count};left-=count}return true},
  Crafting:{resolve(items,recipes=Data.recipes){const ids=items.filter(Boolean).map(x=>x.id||x.name).sort();for(const recipe of recipes){const need=[...recipe.inputs].sort();if(ids.length===need.length&&ids.every((v,i)=>v===need[i]))return {...recipe.output}}return null}}
  };
@@ -81,9 +81,9 @@ function addItem(item,amount=1){
  const ok=ABISM.Inventory.add(inventory,item,amount);if(!ok)say('Inventário cheio!');else ABISM.Events.emit('InventoryChanged',{inventory});return ok;
 }
 function gen(s){
- worldNeedsBuild=true;cameraAngleIndex=0;cameraAngleTarget=0;
+ AbyssHome.reset();GuardBattle.close();worldNeedsBuild=true;cameraAngleIndex=0;cameraAngleTarget=0;
  seed=s;const R=rng(s),r=(a,b)=>a+Math.floor(R()*(b-a+1));
- T=new Uint8Array(W*H);K=new Uint8Array(W*H);OB=new Array(W*H).fill(null);OBJ=[];RM=[[],[],[],[],[],[],[]];
+ T=new Uint8Array(W*H);K=new Uint8Array(W*H);OB=new Array(W*H).fill(null);OBJ=[];RM=[[],[],[],[],[],[],[],[],[],[]]; /* v1.7: 10 listas (banda 7 = Jardim; 9 = Ala de Cirurgia) */
  have=[0,0,0];inventory=Array(36).fill(null);equipped={leftHand:'Lamparina',rightHand:'Faca'};addItem({name:'Lamparina',type:'tool',desc:'Lamparina inicial equipada na mão esquerda.'});addItem({name:'Faca',type:'weapon',damage:18,desc:'Faca simples equipada na mão direita.'});for(const it of inventory)if(it)ITEMDB[it.name]={...it,count:1};inventory=Array(36).fill(null);hunger=100;hungerClock=0;thirst=100;thirstClock=0;sleep=100;sleepClock=0;rats=[];roaches=[];burrows=[];organicMatter=[];populations={rats:24,roaches:36};ecoClock=0;lastSave=0;bodyHP={head:35,torso:100,neck:45,shoulders:60,leftArm:65,rightArm:65,leftLeg:75,rightLeg:75,feet:55};selectedSlot=null;guard=null;GuardModule.reset();expl=new Uint8Array(W*H);mmc.clearRect(0,0,W,H);elapsed=0;curB=-1;
  const cv=(x1,y1,x2,y2,st,by)=>{for(let y=y1;y<=y2;y++)for(let x=x1;x<=x2;x++){if(x<1||y<1||x>W-2||y>H-2)continue;const i=y*W+x;T[i]=st&&(y==by||y==by-1)?2:(T[i]||1);K[i]=1}};
  const link=(a,b,cw,st,by)=>{if(R()<.5){cv(Math.min(a.cx,b.cx),a.cy,Math.max(a.cx,b.cx)+cw-1,a.cy+cw-1,st,by);cv(b.cx,Math.min(a.cy,b.cy),b.cx+cw-1,Math.max(a.cy,b.cy)+cw-1,st,by)}else{cv(a.cx,Math.min(a.cy,b.cy),a.cx+cw-1,Math.max(a.cy,b.cy)+cw-1,st,by);cv(Math.min(a.cx,b.cx),b.cy,Math.max(a.cx,b.cx)+cw-1,b.cy+cw-1,st,by)}};
@@ -107,10 +107,13 @@ function gen(s){
   for(const base of[0,32])for(let k=0;k<7;k++){const x=3+k*10;
    if(base===0&&k===0){const lb=mk(x,y0+5,9,10,5,{bedroom:false,lobby:true,top:true}),bot=mk(x,y0+19,9,4,5,{bedroom:true,top:false,spawnRoom:true});door(x+4,y0+15,'h');door(x+4,y0+18,'h');out.lobbyTop=lb;out.spawn=bot;continue}
    if(base===0&&k>=5)continue; /* colunas 5-6 da ala A: banheiros */
-   mk(x,y0+base+11,9,4,5,{bedroom:true,top:true});mk(x,y0+base+19,9,4,5,{bedroom:true,top:false});
+   /* v1.7 CORREÇÃO DE PAREDES: a coluna 6 (x=63) ficava colada no corredor vertical x=72; com largura 8 sobra a parede x=71 */
+   const rw6=k===6?8:9;
+   mk(x,y0+base+11,rw6,4,5,{bedroom:true,top:true});mk(x,y0+base+19,rw6,4,5,{bedroom:true,top:false});
    door(x+4,y0+base+15,'h');door(x+4,y0+base+18,'h')}
   /* banheiros coletivos: masculino (norte) e feminino (sul) */
-  const wcM=mk(53,y0+9,19,6,5,{bath:'M',top:true}),wcF=mk(53,y0+19,19,6,5,{bath:'F',top:false});
+  /* v1.7 CORREÇÃO DE PAREDES: largura 18 (antes 19) deixa a parede x=71 entre o banheiro e o corredor x=72 */
+  const wcM=mk(53,y0+9,18,6,5,{bath:'M',top:true}),wcF=mk(53,y0+19,18,6,5,{bath:'F',top:false});
   door(62,y0+15,'h');door(62,y0+18,'h');
   /* biblioteca gigantesca + anexo (ala B) + sala do diretor interna */
   carve(75,y0+2,124,y0+30,0);door(74,y0+16,'v',2);carve(75,y0+34,124,y0+62,0);door(74,y0+48,'v',2);
@@ -158,8 +161,10 @@ function gen(s){
   const door=(x,y)=>{const d={t:'door',x,y,w:1,axis:'h',open:false};T[y*W+x]=1;OB[y*W+x]=d;for(const s2 of[-1,0,1])K[y*W+x+s2]=1;K[(y-1)*W+x]=1;K[(y+1)*W+x]=1;OBJ.push(d)};
   carve(3,ys+6,123,ys+7,1);carve(1,2,2,ys+7,1);
   const kinds=['cirurgia','preparo','instrumentos','cirurgia','esteril','recuperacao','cirurgia','instrumentos'];
-  for(let k=0;k<15;k++){const x=3+k*8;for(const top of[true,false]){const y=top?ys+1:ys+9;
+  for(let k=0;k<15;k++){const x=4+k*8; /* v1.7 CORREÇÃO DE PAREDES: x=4 (antes 3) deixa a parede x=3 ao lado do corredor oeste x=1..2 */
+   for(const top of[true,false]){const y=top?ys+1:ys+9;
    carve(x,y,x+6,y+3,0);rooms.push({x,y,w:7,h:4,cx:x+3,cy:y+2,top,kind:kinds[(k+(top?0:3))%kinds.length]});door(x+3,top?ys+5:ys+8)}}
+  RM[9]=rooms; // v1.7: antes RM[7]; a banda 7 agora é o Jardim
   const south=[...RM[0]].sort((a,b)=>b.cy-a.cy)[0];if(south)link(south,{cx:1,cy:south.cy},2,0,0);
   OBJ.push({t:'surgSign',x:4,y:ys+6,w:1});
   const decorate=(put)=>{for(const rm of rooms){const far=rm.top?rm.y:rm.y+3,mid=rm.top?rm.y+1:rm.y+2,xr=rm.x+6;
@@ -170,7 +175,9 @@ function gen(s){
    else{put('bed',rm.x+1,far,2);put('bed',rm.x+4,far,2);put('ivstand',rm.x+3,mid,1);put('stretcher',rm.x+1,mid,2)}
    if(R()<.5)put('trash',rm.x+r(0,6),mid,1)}};
   return {rooms,decorate}})();
- for(let k=0;k<2;k++)link(RM[0][r(0,RM[0].length-1)],RM[4][r(0,RM[4].length-1)],2,0,0); /* v1.3.3: sem escadas; só a Medicação é anexa ao Andar 1 */
+ /* v1.7 CORREÇÃO DE PAREDES: antes link(RM[0],RM[4]) abria corredores que atravessavam as salas da Ala de Cirurgia (sem paredes laterais).
+    Agora a Medicação (anexo) liga ao corredor oeste x=1..2 da cirurgia, que já fica fora das salas. */
+ for(let k=0;k<2;k++){const a=RM[4][r(0,RM[4].length-1)];cv(1,a.cy,a.cx+1,a.cy+1);cv(1,BD[0].y+57,2,a.cy+1)}
  const near=(x,y)=>K[y*W+x]||K[y*W+x+1]||K[y*W+x-1]||K[y*W+x+W]||K[y*W+x-W];
  const fr=(x,y)=>x>0&&y>0&&x<W-1&&y<H-1&&T[y*W+x]==1&&!OB[y*W+x]&&!near(x,y);
  const put=(t,x,y,w,extra)=>{w=w||1;for(let i=0;i<w;i++)if(!fr(x+i,y))return null;const o=Object.assign({t,x,y,w,v:r(0,9)},extra);OBJ.push(o);for(let i=0;i<w;i++)OB[y*W+x+i]=o;return o};
@@ -187,7 +194,7 @@ function gen(s){
   OBJ.push({t:'gate',x:gx,y:gy,w:2});for(let j=0;j<2;j++)for(let i=0;i<2;i++)K[(rm.y+j)*W+gx+i]=1;break}
  /* mecanismos: um por setor */
  for(const bi of[5,2,3])for(const rm of shuf(RM[bi]).filter(m=>bi!==5||m.directorOffice)){if(rm==sp)continue;let ok=0;const id=bi==5?0:bi==2?1:2;for(let k=0;k<12&&!ok;k++)ok=put('mech',rm.x+r(0,rm.w-1),rm.y,1,{id});if(ok)break}
- const gr=RM[3].find(rm=>rm.w>=4&&rm.h>=4)||RM[3][0],lock=OBJ.find(o=>o.t=='mech'&&o.id==2),gx=gr.cx+.5,gy=gr.cy+.5;const patrol=[{x:gr.x+1.5,y:gr.y+1.5},{x:gr.x+gr.w-1.5,y:gr.y+1.5},{x:gr.x+gr.w-1.5,y:gr.y+gr.h-1.5},{x:gr.x+1.5,y:gr.y+gr.h-1.5}].filter(q=>T[Math.floor(q.y)*W+Math.floor(q.x)]===1);GuardModule.spawnAll(gr,patrol,s);
+ const gr=RM[0].find(rm=>rm.w>=4&&rm.h>=4)||RM[0][0],lock=OBJ.find(o=>o.t=='mech'&&o.id==2),gx=gr.cx+.5,gy=gr.cy+.5;const patrol=[{x:gr.x+1.5,y:gr.y+1.5},{x:gr.x+gr.w-1.5,y:gr.y+1.5},{x:gr.x+gr.w-1.5,y:gr.y+gr.h-1.5},{x:gr.x+1.5,y:gr.y+gr.h-1.5}].filter(q=>T[Math.floor(q.y)*W+Math.floor(q.x)]===1);GuardModule.reset();GuardModule.spawnAll(gr,patrol,s);
  for(const rm of shuf(RM[3])){if(put('item',rm.cx,rm.cy,1,{itemName:'Chave inglesa',itemType:'tool',desc:'Ferramenta pesada que pode ser usada em uma das mãos.'}))break;}
  /* Ecossistema: população total inclui indivíduos escondidos nas tocas; só uma fração fica ativa no mapa. */
  let family=0;
@@ -201,6 +208,8 @@ function gen(s){
  for(const bi of [0,1,2,4])for(const rm of shuf(RM[bi]).slice(0,Math.min(4,RM[bi].length))){for(let n=0;n<3&&roaches.length<ECOLOGY.roaches.activeLimit;n++){const cx=rm.x+.6+R()*Math.max(.2,rm.w-1.2),cy=rm.y+.6+R()*Math.max(.2,rm.h-1.2);if(T[Math.floor(cy)*W+Math.floor(cx)]===1&&!OB[Math.floor(cy)*W+Math.floor(cx)])roaches.push({x:cx,y:cy,homeX:cx,homeY:cy,phase:R()*6.28,heading:R()*6.28,alive:true,state:'forage',hunger:20+R()*60,decision:R()*4,foodPath:null,foodTargetIndex:-1,foodRepath:0})}}
  /* Matéria orgânica invisível: pontos de alimento que atraem baratas pelo cheiro. */
  for(let n=0;n<Math.max(18,Math.floor(W*H/170));n++){const x=r(2,W-3),y=r(2,H-3);if(T[y*W+x]===1&&!OB[y*W+x])organicMatter.push({x:x+.5,y:y+.5,amount:1+R()*2,active:true})}
+ /* Ala de Cirurgia: algumas baratas (RM[9] fica fora de RM[0] para não ganhar camas/portas extras) */
+ for(const rm of shuf(RM[9]).slice(0,3))for(let n=0;n<2;n++)roaches.push({x:rm.cx+.5,y:rm.cy+.5,homeX:rm.cx+.5,homeY:rm.cy+.5,phase:R()*6.28,heading:R()*6.28,alive:true,state:'forage',hunger:20+R()*60,decision:R()*4,foodPath:null,foodTargetIndex:-1,foodRepath:0});
  /* bilhete na cela inicial */
  for(let k=0;k<10;k++)if(put('note',sp.x+r(0,sp.w-1),sp.y+sp.h-1))break;
  /* decoração por tipo de sala */
@@ -211,7 +220,8 @@ function gen(s){
    for(let yy=rm.y+3;yy<yB;yy+=4)for(let x=rm.x+1;x+4<=xr;x+=5){if(put('longTable',x,yy,4))for(let k=0;k<4;k+=1){if(R()<.6)put('cchair',x+k,yy-1,1);if(R()<.6)put('cchair',x+k,yy+1,1)}}
    for(let n=0;n<6;n++)put('trash',rm.x+r(0,rm.w-1),rm.y+r(1,rm.h-1),1);OBJ.push({t:'canteenSign',x:rm.x,y:yB,w:1})}
   else if(bi==0&&psy.includes(rm)){OBJ.push({t:'psychSign',x:rm.x,y:yT,w:1});put('inkboard',rm.x+1,yT,1);put('desk',xr-1,yT,2,{shabby:true});put('couch',rm.x,yB,2);put('bookcase',xr,yB);put('chair',rm.x+2,yT+1,1);for(let n=0;n<4;n++)put('papers',rm.x+r(0,rm.w-1),rm.y+r(1,rm.h-1),1)}
-  else if(bi==0){if(a>=45){line('bed',yT,3,2);line('bed',yB,3,2);if(rm.w>=5)put('desk',rm.x+1,yT+1,2)}else if(a<30){put('bed',rm.x,yT,2);put('locker',xr,yT)}else{put('desk',rm.x,yT,2);put('locker',xr,yB)}}
+  else if(bi==0){/* v1.7: rm.kind marca o uso da sala: 'ward' (enfermaria) e 'patient' (quarto) têm camas; 'office' é sala administrativa */
+   if(a>=45){rm.kind='ward';line('bed',yT,3,2);line('bed',yB,3,2);if(rm.w>=5)put('desk',rm.x+1,yT+1,2)}else if(a<30){rm.kind='patient';put('bed',rm.x,yT,2);put('locker',xr,yT)}else{rm.kind='office';put('desk',rm.x,yT,2);put('locker',xr,yB)}}
   else if(bi==1){if(a>=45){line('tank',yT,2,1);line('table',yB,4,2);if(rm.h>=7&&rm.w>=9)for(let x=rm.x+1;x+2<=xr;x+=4)put('table',x,rm.y+(rm.h>>1),2)}else{line('tank',yT,2,1);put('crate',xr,yB)}}
   else if(bi==2){if(a<=24){put('bed',rm.x,yT,2);put('bucket',xr,yB)}else{line('crate',yT,3,1);line('bed',yB,3,2)}}
    else if(bi==3){line('crate',yT,2,1);put('locker',xr,yB);if(rm.w>=4)put('desk',rm.x+1,yB,2)}
@@ -262,6 +272,49 @@ function gen(s){
   OBJ.push(door);
   for(let j=0;j<width;j++){const xx=c.x+(c.axis==='h'?j:0),yy=c.y+(c.axis==='v'?j:0);OB[yy*W+xx]=door;usedDoorThresholds.add((c.outX+(c.axis==='h'?j:0))+','+(c.outY+(c.axis==='v'?j:0)));}
  }
+ /* v1.7 NPC DOENTE (visível no ANDAR 2): ocupa um dos dormitórios que NÃO seja o de Karl (spawnRoom). O quarto já tem cama e a porta
+    para o corredor (a porta do dormitório de cima fica na linha rm.y+rm.h; a do de baixo, em rm.y-1). */
+ {NPCModule.reset();
+  const cands=shuf(RM[5].filter(rm=>rm.bedroom&&!rm.spawnRoom&&!rm.bath&&rm!==sp&&Math.hypot(rm.cx-P.x,rm.cy-P.y)>12));
+  for(const rm of cands){
+   const bed=OBJ.find(o=>o.t==='bed'&&o.x>=rm.x&&o.x<rm.x+rm.w&&o.y>=rm.y&&o.y<rm.y+rm.h);if(!bed)continue;
+   const dy=rm.top?rm.y+rm.h:rm.y-1,dr=OBJ.find(o=>o.t==='door'&&o.axis==='h'&&o.y===dy&&o.x>=rm.x&&o.x<rm.x+rm.w);if(!dr)continue;
+   rm.npcRoom=true;
+   dr.locked=true;dr.keyDoor=true; // v1.7: trancada desde o início
+   NPCModule.place({rm,door:dr,bed:{x:bed.x,y:bed.y},front:{x:dr.x,y:rm.top?dr.y-1:dr.y+1},band:5});break}}
+ /* v1.7 ANEXO JARDIM (banda 7, y 128..191): enorme, aberto, poucas salas gigantes (BSP com m=22 e salas que quase preenchem a folha).
+    Ligado ao Andar 1 pelo anexo da Medicação (banda 4), logo acima. Decorado com bancos, arbustos mortos, estátuas, árvores secas e uma fonte. */
+ {const gb=BD[7],gm=gb.m,gRooms=[];
+  const gbsp=(x,y,w,h,d)=>{d=d|0;const cH=w>=2*gm,cV=h>=2*gm;
+   if((cH||cV)&&(d===0||R()<.85)){const hor=cH&&cV?(w>h*1.25?false:h>w*1.25?true:R()<.5):cV;let a,c;
+    if(hor){const sy=r(gm,h-gm);a=gbsp(x,y,w,sy,d+1);c=gbsp(x,y+sy,w,h-sy,d+1)}else{const sx=r(gm,w-gm);a=gbsp(x,y,sx,h,d+1);c=gbsp(x+sx,y,w-sx,h,d+1)}
+    link(a,c,gb.cw);return R()<.5?a:c}
+   const rx=x+r(1,2),ry=y+r(1,2),rw=w-r(3,4),rh=h-r(3,4);
+   const rm={x:rx,y:ry,w:rw,h:rh,cx:rx+(rw>>1),cy:ry+(rh>>1),b:7,garden:true,kind:'garden'};
+   for(let j=ry;j<ry+rh;j++)for(let i=rx;i<rx+rw;i++)T[j*W+i]=1;RM[7].push(rm);gRooms.push(rm);return rm};
+  gbsp(1,gb.y+2,W-2,gb.h-4);
+  /* ligação com o anexo da Medicação: corredor vertical de 2 tiles a partir da sala da banda 4 mais próxima do Jardim cuja coluna até y=127 é só parede */
+  const cand=RM[4].filter(a=>a.w>=3).sort((a,b)=>(b.y+b.h)-(a.y+a.h));let linked=0,lastX=-99;
+  for(const a of cand){if(linked>=2)break;
+   for(const cx of[a.cx,a.cx-1,a.cx+1]){let ok=cx>3&&cx<W-5;for(let y=a.y+a.h;y<=gb.y-1&&ok;y++)for(let x=cx-1;x<=cx+2;x++)if(T[y*W+x]!==0){ok=false;break}
+    if(!ok||(linked===1&&Math.abs(cx-lastX)<20))continue;
+    const J=gRooms.reduce((best,q)=>{const d=cx<q.x?q.x-cx:cx>=q.x+q.w?cx-q.x-q.w+1:0,e=best&&(cx<best.x?best.x-cx:cx>=best.x+best.w?cx-best.x-best.w+1:0);return !best||d<e?q:best},null);
+    cv(cx,a.cy,cx+1,J.cy+1);cv(Math.min(cx,J.cx),J.cy,Math.max(cx,J.cx)+1,J.cy+1);lastX=cx;linked++;break}}
+  if(!linked){const a=RM[4][RM[4].length-1],J=gRooms[0];cv(1,a.cy,a.cx+1,a.cy+1);cv(1,a.cy,2,J.cy+1);cv(1,J.cy,J.cx,J.cy+1)} // fallback: corredor pela borda oeste
+  /* decoração: cada sala recebe objetos de jardim; a maior ganha a fonte no centro */
+  const big=[...gRooms].sort((a,b)=>b.w*b.h-a.w*a.h);
+  if(big[0]&&big[0].w>=9&&big[0].h>=9){const f=big[0];let placed=false; // os corredores passam pelo centro da sala (K): procura um 3x3 livre perto dele
+   for(let rad=0;rad<10&&!placed;rad++)for(let dy=-rad;dy<=rad&&!placed;dy++)for(let dx=-rad;dx<=rad&&!placed;dx++){
+    if(rad&&Math.abs(dx)!==rad&&Math.abs(dy)!==rad)continue;const fx=f.cx-1+dx,fy=f.cy+dy;
+    let ok=fy-1>f.y&&fy+1<f.y+f.h-1&&fx>f.x&&fx+2<f.x+f.w-1;for(let j=-1;j<=1&&ok;j++)for(let i=0;i<3&&ok;i++)if(!fr(fx+i,fy+j))ok=false;
+    if(ok){put('fountain',fx,fy,3);for(const q of[-1,1])put('solidPart',fx,fy+q,3);placed=true}}}
+  const spread=(rm,type,n,w)=>{let done=0;for(let t=0;t<n*30&&done<n;t++){const x=rm.x+1+Math.floor(R()*Math.max(1,rm.w-2-(w||1))),y=rm.y+1+Math.floor(R()*Math.max(1,rm.h-2));
+    if(OBJ.some(o=>o.garden&&Math.abs(o.x-x)<(type==='deadBush'?2:4)&&Math.abs(o.y-y)<(type==='deadBush'?2:4)))continue;
+    if(put(type,x,y,w||1,{garden:true}))done++}};
+  for(const rm of gRooms){const a=rm.w*rm.h;
+   spread(rm,'bench',Math.max(1,Math.floor(a/420)),3);spread(rm,'statue',Math.max(1,Math.floor(a/650)),1);
+   spread(rm,'deadTree',Math.floor(a/330),1);spread(rm,'deadBush',Math.max(2,Math.floor(a/110)),1)}
+ }
  /* Celas do setor prisional: camas improvisadas e grades visíveis. */
  const cellRooms=shuf(RM[3].filter(rm=>rm.w>=4&&rm.h>=4)).slice(0,Math.min(5,RM[3].length));
  for(const rm of cellRooms){
@@ -311,10 +364,16 @@ function gen(s){
   reservedAnimals.add(key);if(a.homeX!==undefined)a.homeX=a.x;if(a.homeY!==undefined)a.homeY=a.y;
  }
  for(const m of organicMatter)if(m.active&&!clearEcologyCell(Math.floor(m.x),Math.floor(m.y))){const spot=findEcologyCell(m.x,m.y);if(spot){m.x=spot.x;m.y=spot.y}else m.active=false}
+ AbyssModule.spawn(seed); /* altares (-1..-4) e Coletor de Almas (-2): por último, com rng próprio */
+ AbyssHome.placeStairs(seed); /* v1.5.0: escadaria do Andar -4 para o Lar do Abismo (rng próprio, não muda altares/Coletor) */
 }
 
 /* ---------- jogo ---------- */
 const gameHost=$('g'),keys={};let last=0;
+/* v1.5.0 · MÓDULO 1: luz do jogador. [F] acende/apaga a lamparina; os guardas enxergam essa luz de longe. */
+let lampOn=true;
+function playerLit(){return lampOn&&!!(equipped&&equipped.leftHand==='Lamparina')}
+function toggleLamp(){if(mode!=='game'||combatActive||AbyssHome.busy)return;if(!(equipped&&equipped.leftHand==='Lamparina')){say('Karl não está segurando a lamparina.',1800);return}lampOn=!lampOn;beep(lampOn?620:260,.08,'square',.04,lampOn?900:120);say(lampOn?'Lamparina acesa. Os guardas podem ver essa luz de longe.':'Lamparina apagada. No escuro, os guardas só enxergam dentro da própria lanterna.',2800)}
 let renderer3D=null,scene3D=null,camera3D=null,world3D=null,playerSprite=null,guardSprite=null;
 let cameraAngleIndex=0,cameraAngleTarget=0;
 let ratSprites=[],roachSprites=[],worldNeedsBuild=true,ambient3D=null,playerLamp=null,shadowSun=null,lampPool=[],lampSpots=[];
@@ -340,6 +399,17 @@ function makeSpriteTexture(kind){
   if(isGuard){g.fillStyle='#7b302b';g.fillRect(43,58,42,8);g.fillStyle='#b8a78a';g.fillRect(48,82,32,4)}
   else {g.fillStyle='#b7aa8d';g.fillRect(49,62,30,5);g.fillStyle='#8d806b';g.fillRect(58,70,12,45)}
   g.fillStyle='#171817';g.fillRect(57,26,4,3);g.fillRect(69,26,4,3);
+ }else if(kind==='patient'){ /* v1.7 NPC doente em pé: camisola hospitalar, magro, curvado */
+  ellipse(64,30,15,18,'#cfc3ae');g.fillStyle='#d9d4c6';g.beginPath();g.arc(64,22,16,Math.PI,0);g.fill(); // cabelo ralo
+  g.fillStyle='#9ea7a2';g.beginPath();g.moveTo(46,50);g.lineTo(82,50);g.lineTo(90,140);g.lineTo(38,140);g.closePath();g.fill();
+  g.fillStyle='#868f8b';g.fillRect(40,56,10,64);g.fillRect(78,56,10,64);g.fillStyle='#cfc3ae';g.fillRect(40,118,9,10);g.fillRect(79,118,9,10);
+  g.fillStyle='#bfc7c2';g.fillRect(46,138,36,5);g.fillStyle='#cfc3ae';g.fillRect(48,143,10,36);g.fillRect(70,143,10,36);
+  g.fillStyle='#171817';g.fillRect(57,28,4,3);g.fillRect(69,28,4,3);
+ }else if(kind==='patientBed'){ /* v1.7 NPC doente deitado na cama */
+  g.fillStyle='#8c8f86';g.fillRect(4,132,120,46);g.fillStyle='#b9bdb0';g.fillRect(4,128,120,8); // colchão
+  g.fillStyle='#9ea7a2';g.beginPath();g.moveTo(34,122);g.lineTo(112,126);g.lineTo(112,150);g.lineTo(34,152);g.closePath();g.fill();
+  ellipse(24,134,15,13,'#cfc3ae');g.fillStyle='#d9d4c6';g.beginPath();g.arc(22,128,13,Math.PI*1.05,Math.PI*1.9);g.fill();
+  g.fillStyle='#171817';g.fillRect(24,132,3,2);g.fillRect(14,132,3,2);
  }else if(kind==='rat'){
   ellipse(63,104,35,22,'#77736b');ellipse(89,91,16,14,'#8c877d');
   ellipse(95,91,3,3,'#d2b0a2');g.strokeStyle='#a58d82';g.lineWidth=4;g.beginPath();g.moveTo(34,111);g.quadraticCurveTo(10,130,20,145);g.stroke();
@@ -436,16 +506,23 @@ function revealCrate(){if(!activeCrate)return;const loot=generateCrateLoot(activ
 function renderCrateLoot(){if(!activeCrate)return;const loot=activeCrate.loot||[];$('crateLoot').innerHTML=loot.length?loot.map((it,i)=>`<button class="rarity-${it.rarityKey}" data-loot-index="${i}">${it.name}<small>${it.rarity} · ${it.effect}</small></button>`).join(''):'<div class="invHint">Esta caixa está vazia.</div>';$('crateLoot').querySelectorAll('[data-loot-index]').forEach(b=>b.onclick=()=>{const i=+b.dataset.lootIndex,it=activeCrate.loot[i];if(!it)return;const item={name:it.name,type:it.type,rarity:it.rarity,desc:it.desc,tags:it.type==='food'?['consumivel']:it.type==='consumable'?['consumivel']:[]};if(!addItem(item))return;if(it.name==='Garrafa de Água'&&it.type==='consumable'){}activeCrate.loot.splice(i,1);renderCrateLoot();say('Item coletado: '+it.name,1800)})}
 function closeCrate(){activeCrate=null;cratePreviewOpen=false;if(crateLid)crateLid.rotation.x=0;renderCratePreview();$('cratePanel').classList.remove('on');$('cratePanel').setAttribute('aria-hidden','true')}
 $('crateStage').addEventListener('click',revealCrate);$('crateStage').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();revealCrate()}});$('crateClose').onclick=closeCrate;
-function target(){let b=null,bd=1.8;for(const bug of roaches){if(!bug.alive)continue;const d=Math.hypot(bug.x-P.x,bug.y-P.y);if(d<bd){bd=d;b={t:'roach',roach:bug}}}for(const o of OBJ){if(o.taken||o.read||(o.t==='crate'&&o.opened&&!(o.loot&&o.loot.length)))continue;if(o.t!='elevator'&&o.t!='mech'&&o.t!='note'&&o.t!='gate'&&o.t!='item'&&o.t!='door'&&o.t!='doubleDoor'&&o.t!='bed'&&o.t!='crate')continue;const d=Math.hypot(o.x+o.w/2-P.x,o.y+.5-P.y);if(d<bd){bd=d;b=o}}return b}
-function interact(){if(GuardModule.stealthKill())return;const o=target();if(!o)return;
+function target(){let b=null,bd=1.8;for(const bug of roaches){if(!bug.alive)continue;const d=Math.hypot(bug.x-P.x,bug.y-P.y);if(d<bd){bd=d;b={t:'roach',roach:bug}}}for(const o of OBJ){if(o.taken||o.read||(o.t==='crate'&&o.opened&&!(o.loot&&o.loot.length)))continue;if(o.t!='elevator'&&o.t!='mech'&&o.t!='note'&&o.t!='gate'&&o.t!='item'&&o.t!='door'&&o.t!='doubleDoor'&&o.t!='bed'&&o.t!='crate'&&o.t!='coletor')continue;const d=Math.hypot(o.x+o.w/2-P.x,o.y+.5-P.y);if(d<bd){bd=d;b=o}}return b}
+function interact(){if(AbyssHome.active){AbyssHome.interact();return}if(NPCModule.interact())return; /* v1.7 */if(GuardModule.stealthKill())return;if(AbyssModule.pickBody())return;const o=target();
+ if(!o||(o.t!=='door'&&o.t!=='doubleDoor')){if(AbyssModule.interactAltar())return}
+ if(!o){AbyssModule.dropBody();return}
+ if(o.t==='coletor'){AbyssModule.collectorInfo(o);return}
  if(o.t==='crate'){openCrate(o);return}
  if(o.t==='elevator'){openElev(o);return}
- if(o.t==='door'||o.t==='doubleDoor'){if(o.open&&Math.hypot(P.x-(o.x+.5),P.y-(o.y+.5))<.48){say('Afaste-se da passagem antes de fechar a porta.',1800);return}o.open=!o.open;worldNeedsBuild=true;for(let j=0;j<o.w;j++){const idx=(o.y+(o.axis==='v'?j:0))*W+o.x+(o.axis==='h'?j:0);OB[idx]=o.open?null:o}say(o.open?'A porta range ao abrir.':'A porta foi fechada.',1600);return}
+ if(o.t==='door'||o.t==='doubleDoor'){if(o.locked){ /* v1.7: porta do NPC doente — só abre com a 'Chave do guarda' (dropada pelos guardas); a chave é gasta */
+  const ki=inventory.findIndex(i=>i&&i.name==='Chave do guarda');
+  if(ki<0){say('Trancada. Só uma chave de guarda abre esta porta.',2200);return}
+  inventory[ki]=null;o.locked=false;say('Você destranca a porta com a chave do guarda.',2200);try{beep(260,.15,'square',.04,120)}catch(e){}
+  try{if(typeof renderInventory==='function')renderInventory()}catch(e){}} /* e segue para abrir */if(o.open&&Math.hypot(P.x-(o.x+.5),P.y-(o.y+.5))<.48){say('Afaste-se da passagem antes de fechar a porta.',1800);return}o.open=!o.open;refreshObjectMesh(o);for(let j=0;j<o.w;j++){const idx=(o.y+(o.axis==='v'?j:0))*W+o.x+(o.axis==='h'?j:0);OB[idx]=o.open?null:o}say(o.open?'A porta range ao abrir.':'A porta foi fechada.',1600);return}
  if(o.t==='bed'){openSleep();return}
  if(o.t=='roach'){if(!addItem({name:'Barata',type:'food',tags:['consumivel'],desc:'Uma barata capturada. É uma fonte pequena e desagradável de alimento.'}))return;o.roach.alive=false;populations.roaches=Math.max(0,populations.roaches-1);say('Barata capturada. População restante: '+populations.roaches+'.',2600);return}
- if(o.t=='item'){if(!addItem({name:o.itemName,type:o.itemType,desc:o.desc}))return;o.taken=1;worldNeedsBuild=true;say('Item coletado: '+o.itemName,2500)}
- else if(o.t=='mech'){o.taken=1;worldNeedsBuild=true;have[o.id]=1;addItem({name:'Mecanismo '+(o.id+1),type:'mechanism',desc:'Peça do sistema de travas da saída.'});beep(520,.15,'square',.06);setTimeout(()=>beep(780,.3,'square',.06),140);say(MECH[o.id],4000)}
- else if(o.t=='note'){o.read=1;worldNeedsBuild=true;addItem({name:'Bilhete de funcionário',type:'document',desc:'Um bilhete amassado com instruções sobre o selamento.'});beep(300,.1,'triangle',.06);say(language==='en-US'?SC_EN[4][4]:NOTE,9000)}
+ if(o.t=='item'){if(!addItem({name:o.itemName,type:o.itemType,desc:o.desc}))return;o.taken=1;refreshObjectMesh(o);say('Item coletado: '+o.itemName,2500)}
+ else if(o.t=='mech'){o.taken=1;refreshObjectMesh(o);have[o.id]=1;addItem({name:'Mecanismo '+(o.id+1),type:'mechanism',desc:'Peça do sistema de travas da saída.'});beep(520,.15,'square',.06);setTimeout(()=>beep(780,.3,'square',.06),140);say(MECH[o.id],4000)}
+ else if(o.t=='note'){o.read=1;refreshObjectMesh(o);addItem({name:'Bilhete de funcionário',type:'document',desc:'Um bilhete amassado com instruções sobre o selamento.'});beep(300,.1,'triangle',.06);say(language==='en-US'?SC_EN[4][4]:NOTE,9000)}
  else if(o.t=='gate'){const n=3-have.reduce((a,b)=>a+b);if(n)say(`O portão exige três mecanismos. Faltam ${n}.`,3000);else finish(1)}}
 let combatActive=false,combatTargetMode='',combatTurn=0,mind=95,combatGuarding=false;
 
@@ -469,13 +546,14 @@ function showCombatTransition(kind,done){
  },1600);
 }
 function finishPlayerDefeat(){closeCombat();showCombatTransition('defeat',()=>{mode='end';$('eh').textContent='GAME OVER';$('ep').textContent='Karl foi derrotado pelo guarda. Eichenfeld ficou em silêncio.';$('end').classList.add('on','gameover')})}
-function showGuardLoot(){const loot=[...(guard.inventory||[]),...(guard.equipment||[])];$('resultTitle').textContent='GUARDA DERROTADO';$('resultDesc').textContent='O Corrupned Guard caiu. Karl pode revistar o corpo e recolher o que restou.';$('resultLoot').innerHTML=loot.map(it=>`<div class="lootRow"><span>${it.name}<br><small>${it.type==='weapon'?'EQUIPAMENTO':'INVENTÁRIO'}</small></span><small>${it.desc||''}</small></div>`).join('');$('combatResult').classList.add('on');$('combatActions').style.display='grid';playVictoryJingle()}
+function showGuardLoot(){const loot=[...(guard.inventory||[]),...(guard.equipment||[])];$('resultTitle').textContent='GUARDA DERROTADO';$('resultDesc').textContent='O Corrupted Guard caiu. Karl pode revistar o corpo e recolher o que restou.';$('resultLoot').innerHTML=loot.map(it=>`<div class="lootRow"><span>${it.name}<br><small>${it.type==='weapon'?'EQUIPAMENTO':'INVENTÁRIO'}</small></span><small>${it.desc||''}</small></div>`).join('');$('combatResult').classList.add('on');$('combatActions').style.display='grid';playVictoryJingle()}
 function closeCombatResult(){const loot=[...(guard?.inventory||[]),...(guard?.equipment||[])];for(const it of loot){if(addItem({...it,count:1})){} }if(guard){guard.looted=true;guard.inventory=[];guard.equipment=[]} $('combatResult').classList.remove('on');say('O corpo do guarda permanece no local.',2600)}
 $('resultContinue').onclick=closeCombatResult;
-function openCombatReal(){if(combatActive||!guard||!guard.alive)return;combatActive=true;ABISM.Combat.enter();combatTurn=0;combatGuarding=false;enemyThinking=false;setCombatControls(false);mode='game';$('combatPanel').classList.add('on');$('combatPanel').setAttribute('aria-hidden','false');$('combatLog').textContent='O Corrupned Guard agarrou Karl. Escolha sua ação.';combatTargets('');refreshCombat()}
-function closeCombat(){combatActive=false;ABISM.Combat.exit();enemyThinking=false;if(enemyThinkTimer)clearTimeout(enemyThinkTimer);if(enemyThinkInterval)clearInterval(enemyThinkInterval);enemyThinkTimer=null;enemyThinkInterval=null;setCombatControls(false);$('combatPanel').classList.remove('on');$('combatPanel').setAttribute('aria-hidden','true');combatTargetMode='';$('combatTargets').classList.remove('on')}
-function refreshCombat(){const hp=guard.bodyHP||(guard.bodyHP={head:40,torso:100,leftArm:65,rightArm:65,leftLeg:75,rightLeg:75});$('combatPlayerStats').textContent='KARL · TRONCO '+bodyHP.torso+' · MENTE '+mind+' · BRAÇOS '+bodyHP.leftArm+'/'+bodyHP.rightArm+' · PERNAS '+bodyHP.leftLeg+'/'+bodyHP.rightLeg;$('enemyTorsoBar').textContent=hp.torso;const labels={head:'CABEÇA',torso:'TRONCO',leftArm:'BRAÇO E',rightArm:'BRAÇO D',leftLeg:'PERNA E',rightLeg:'PERNA D'};$('enemyLimbGrid').innerHTML=Object.entries(labels).map(([k,v])=>'<span>'+v+' · '+hp[k]+'</span>').join('')}
-function combatTargets(kind){combatTargetMode=kind;const el=$('combatTargets');el.innerHTML='';if(!kind){el.classList.remove('on');return}el.classList.add('on');const list=kind==='attack'?ENEMY_PARTS:ENEMY_PARTS.filter(([k])=>['head','torso','leftArm','rightArm'].includes(k));for(const [key,label] of list){const b=document.createElement('button');b.textContent=label+' · '+(guard.bodyHP?.[key]??0);b.disabled=(guard.bodyHP?.[key]??0)<=0;b.onclick=()=>{if(kind==='attack')playerAttack(key,false);else playerAttack(key,true)};el.appendChild(b)}}
+let guardDying=false;
+function openCombatReal(){if(combatActive||!guard||!guard.alive)return;combatActive=true;ABISM.Combat.enter();combatTurn=0;combatGuarding=false;enemyThinking=false;setCombatControls(false);mode='game';$('combatPanel').classList.add('on');$('combatPanel').setAttribute('aria-hidden','false');$('combatLog').textContent='O Corrupted Guard agarrou Karl. Escolha sua ação.';AbyssModule.combatStart(guard);combatTargets('');refreshCombat();guardDying=false;GuardBattle.open(guard)}
+function closeCombat(){GuardBattle.close();AbyssModule.combatEnd();combatActive=false;ABISM.Combat.exit();enemyThinking=false;if(enemyThinkTimer)clearTimeout(enemyThinkTimer);if(enemyThinkInterval)clearInterval(enemyThinkInterval);enemyThinkTimer=null;enemyThinkInterval=null;setCombatControls(false);$('combatPanel').classList.remove('on');$('combatPanel').setAttribute('aria-hidden','true');combatTargetMode='';$('combatTargets').classList.remove('on')}
+function refreshCombat(){const hp=guard.bodyHP||(guard.bodyHP={head:40,torso:100,leftArm:65,rightArm:65,leftLeg:75,rightLeg:75});GuardBattle.sync(guard);$('combatPlayerStats').textContent='KARL · TRONCO '+bodyHP.torso+' · MENTE '+mind+' · BRAÇOS '+bodyHP.leftArm+'/'+bodyHP.rightArm+' · PERNAS '+bodyHP.leftLeg+'/'+bodyHP.rightLeg+AbyssModule.playerStatusText();$('enemyTorsoBar').textContent=hp.torso;$('enemyStatus').textContent=AbyssModule.enemyStatusText(guard);const labels={head:'CABEÇA',torso:'TRONCO',leftArm:'BRAÇO E',rightArm:'BRAÇO D',leftLeg:'PERNA E',rightLeg:'PERNA D'};$('enemyLimbGrid').innerHTML=Object.entries(labels).map(([k,v])=>'<span>'+v+' · '+(guard.severed&&guard.severed[k]?'CARBONIZADO':hp[k])+'</span>').join('')}
+function combatTargets(kind){combatTargetMode=kind;const el=$('combatTargets');el.innerHTML='';if(!kind){el.classList.remove('on');return}el.classList.add('on');const list=(kind==='attack'||kind==='shock')?ENEMY_PARTS:ENEMY_PARTS.filter(([k])=>['head','torso','leftArm','rightArm'].includes(k));for(const [key,label] of list){const b=document.createElement('button');b.textContent=label+' · '+(guard.bodyHP?.[key]??0);b.disabled=(guard.bodyHP?.[key]??0)<=0;b.onclick=()=>{if(kind==='attack')playerAttack(key,false);else if(kind==='shock')AbyssModule.castShock(key);else playerAttack(key,true)};el.appendChild(b)}}
 let enemyThinkTimer=null,enemyThinkInterval=null,enemyThinking=false,enemyDecisionAt=0;
 function setCombatControls(disabled){['combatAttack','combatSkill','combatGuard','combatFlee','combatItem'].forEach(id=>$(id).disabled=disabled)}
 function enemyThink(log){
@@ -488,14 +566,14 @@ function enemyThink(log){
   const legs=(bodyHP.leftLeg+bodyHP.rightLeg)/2;
   // Árvore de decisão: avalia vulnerabilidades antes de escolher o golpe.
   if(arms===0)return {name:'Investida desequilibrada',part:'torso',damage:5};
-  if(bodyHP.torso<35)return {name:'Golpe brutal no tronco',part:'torso',damage:17};
+  if(bodyHP.torso<35)return {name:'Cassetetada brutal no tronco',part:'torso',damage:17};
   if(legs<45)return {name:'Ataque para derrubar',part:bodyHP.leftLeg<bodyHP.rightLeg?'leftLeg':'rightLeg',damage:12};
   if(bodyHP.leftArm<35||bodyHP.rightArm<35)return {name:'Golpe contra o braço ferido',part:bodyHP.leftArm<bodyHP.rightArm?'leftArm':'rightArm',damage:10};
   const roll=Math.random();
-  if(roll<.48)return {name:'Soco pesado',part:'torso',damage:13};
-  if(roll<.72)return {name:'Golpe nos membros',part:Math.random()<.5?'leftArm':'rightArm',damage:9};
-  if(roll<.9)return {name:'Rasteira',part:Math.random()<.5?'leftLeg':'rightLeg',damage:10};
-  return {name:'Ataque alto',part:'head',damage:11};
+  if(roll<.48)return {name:'Cassetetada pesada',part:'torso',damage:13};
+  if(roll<.72)return {name:'Cassetetada nos membros',part:Math.random()<.5?'leftArm':'rightArm',damage:9};
+  if(roll<.9)return {name:'Cassetetada nas pernas',part:Math.random()<.5?'leftLeg':'rightLeg',damage:10};
+  return {name:'Cassetetada alta',part:'head',damage:11};
  };
  const updateCountdown=()=>{if(!combatActive||!enemyThinking)return;const left=Math.max(0,Math.ceil((enemyDecisionAt-Date.now())/1000));$('combatLog').textContent=log+' O Guarda está avaliando uma abertura... ('+left+'s)';};
  updateCountdown();enemyThinkInterval=setInterval(updateCountdown,1000);
@@ -504,14 +582,17 @@ function enemyThink(log){
   if(!combatActive){enemyThinking=false;return}
   const action=chooseTree(),part=action.part;let dmg=action.damage;
   // Cabeça é o alvo mais difícil: 75% do dano dirigido a ela é evitado.
-  if(part==='head'&&Math.random()<.75){$('combatLog').textContent=log+' Karl desviou do ataque à cabeça!';}
+  if(AbyssModule.consumeStun(guard)){$('combatLog').textContent=log+' O Guarda, desorientado, cambaleia e perde o turno!';}else if(part==='head'&&Math.random()<.75){$('combatLog').textContent=log+' Karl desviou do ataque à cabeça!';}
   else{
+   GuardBattle.attack();
    if(combatGuarding){dmg=Math.max(1,Math.round(dmg*.25));combatGuarding=false}
    const enemyArms=(guard.bodyHP?.leftArm||0)+(guard.bodyHP?.rightArm||0);
    if(enemyArms<=0)dmg=Math.max(2,Math.round(dmg*.35));else if(enemyArms<65)dmg=Math.round(dmg*.75);
-   ABISM.Status.damageBody(part,dmg);
-   $('combatLog').textContent=log+' O Guarda escolheu '+action.name+' e atingiu '+part.toUpperCase()+' (-'+dmg+').';
+   dmg=AbyssModule.incomingDamage(part,dmg);ABISM.Status.damageBody(part,dmg);
+   const bone=AbyssModule.rollBoneBreak(part,dmg);
+   $('combatLog').textContent=log+' O Guarda escolheu '+action.name+' e atingiu '+part.toUpperCase()+' (-'+dmg+').'+bone;
   }
+  {const dot=AbyssModule.tickRound();if(dot)$('combatLog').textContent+=dot}
   enemyThinking=false;ABISM.Combat.player();setCombatControls(false);refreshCombat();
   if(bodyHP.torso<=0||bodyHP.head<=0){finishPlayerDefeat();return}
   combatTurn++;
@@ -519,31 +600,39 @@ function enemyThink(log){
 }
 function enemyTurn(log){enemyThink(log)}
 
-function playerAttack(part,skill){const hp=guard.bodyHP||(guard.bodyHP={head:40,torso:100,leftArm:65,rightArm:65,leftLeg:75,rightLeg:75});const weapon=equipped.rightHand==='Faca'?18:8;let dmg=skill?Math.max(8,Math.round(weapon*1.5)):weapon;const statusLevel=Math.min(hunger,thirst);if(statusLevel<=50)dmg=Math.round(dmg*.75);if(statusLevel<=20)dmg=Math.round(dmg*.5);if(skill){if(mind<15){$('combatLog').textContent='Karl está sem concentração suficiente.';return}ABISM.Status.changeMind(-15)}if(part==='head')dmg=Math.round(dmg*1.2);if(part.includes('Arm')&&hp[part]<=0)dmg=Math.round(dmg*.6);hp[part]=Math.max(0,hp[part]-dmg);let log=(skill?'Habilidade: golpe concentrado':'Karl ataca')+' '+part.toUpperCase()+' (-'+dmg+').';if(hp.torso<=0||hp.head<=0){guard.alive=false;guard.dead=true;guard.state='dead';guard.deadAt={x:guard.x,y:guard.y};organicMatter.push({x:guard.x,y:guard.y,amount:8,active:true,source:'guard_corpse'});$('combatLog').textContent=log+' O inimigo caiu.';refreshCombat();$('combatActions').style.display='none';$('combatTargets').classList.remove('on');closeCombat();showCombatTransition('victory',showGuardLoot);return}combatTargets('');enemyThink(log)}
+function playerAttack(part,skill){const hp=guard.bodyHP||(guard.bodyHP={head:40,torso:100,leftArm:65,rightArm:65,leftLeg:75,rightLeg:75});const weapon=equipped.rightHand==='Faca'?18:8;let dmg=skill?Math.max(8,Math.round(weapon*1.5)):weapon;const statusLevel=Math.min(hunger,thirst);if(statusLevel<=50)dmg=Math.round(dmg*.75);if(statusLevel<=20)dmg=Math.round(dmg*.5);if(skill){if(mind<15){$('combatLog').textContent='Karl está sem concentração suficiente.';return}ABISM.Status.changeMind(-15)}if(part==='head')dmg=Math.round(dmg*1.2);dmg=Math.round(dmg*AbyssModule.outgoingMult());if(part.includes('Arm')&&hp[part]<=0)dmg=Math.round(dmg*.6);hp[part]=Math.max(0,hp[part]-dmg);GuardBattle.strike(part,dmg,hp);let log=(skill?'Habilidade: golpe concentrado':'Karl ataca')+' '+part.toUpperCase()+' (-'+dmg+').';if(hp.torso<=0||hp.head<=0){killGuard(log);return}combatTargets('');enemyThink(log)}
+function killGuard(log){ /* o golpe final deixa o corpo desabar (e a cabeça sair, se for o caso) antes de fechar o combate */
+ if(guardDying)return;guardDying=true;setCombatControls(true);$('combatTargets').classList.remove('on');$('combatLog').textContent=log+' O inimigo caiu.';
+ GuardBattle.die(guard,()=>{guardDying=false;killGuardNow(log)})}
+function killGuardNow(log){guard.alive=false;guard.dead=true;guard.state='dead';guard.deadAt={x:guard.x,y:guard.y};organicMatter.push({x:guard.x,y:guard.y,amount:8,active:true,source:'guard_corpse'});$('combatLog').textContent=log+' O inimigo caiu.';refreshCombat();$('combatActions').style.display='none';$('combatTargets').classList.remove('on');closeCombat();showCombatTransition('victory',showGuardLoot)}
 function findFleeSpot(){const dx=P.x-guard.x,dy=P.y-guard.y,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d;
  for(let dist=3.2;dist>=.5;dist-=.35)for(const ang of[0,.5,-.5,1,-1,1.6,-1.6,2.4,-2.4]){const c=Math.cos(ang),s=Math.sin(ang),x=P.x+(ux*c-uy*s)*dist,y=P.y+(ux*s+uy*c)*dist;if(!hit(x,y,.34)&&AIMap.walkable(x,y)&&AIMap.lineOfSight(P.x,P.y,x,y))return{x,y}}
  const n=AIMap.nearestWalkable(P.x,P.y);return n||{x:P.x,y:P.y}}
-function combatFlee(){const chance=Math.max(.18,Math.min(.8,.38+(bodyHP.leftLeg+bodyHP.rightLeg)/400));if(Math.random()<chance){const spot=findFleeSpot(),fx=P.x,fy=P.y;setCombatControls(true);showCombatTransition('flee',()=>{});setTimeout(()=>{closeCombat();P.x=spot.x;P.y=spot.y;for(const k in keys)delete keys[k];guard.state='investigate';guard.lastSeen={x:fx,y:fy};guard.investigate=2;fleeGrace=performance.now()+3500;say('Karl conseguiu fugir do combate!',2200)},650)}else enemyThink('Karl tentou fugir, mas o Guarda o impediu.')} 
+function combatFlee(){const chance=Math.max(.18,Math.min(.8,.38+(bodyHP.leftLeg+bodyHP.rightLeg)/400-AbyssModule.fleePenalty()));if(Math.random()<chance){const spot=findFleeSpot(),fx=P.x,fy=P.y;setCombatControls(true);showCombatTransition('flee',()=>{});setTimeout(()=>{closeCombat();P.x=spot.x;P.y=spot.y;for(const k in keys)delete keys[k];guard.state='investigate';guard.lastSeen={x:fx,y:fy};guard.investigate=2;fleeGrace=performance.now()+3500;say('Karl conseguiu fugir do combate!',2200)},650)}else enemyThink('Karl tentou fugir, mas o Guarda o impediu.')} 
 function combatGuard(){combatGuarding=true;combatTargets('');enemyThink('Karl assume uma postura defensiva, protegendo os membros.');}
 function combatUseItem(){const el=$('combatTargets');el.innerHTML='';const usable=inventory.map((it,i)=>({it,i})).filter(v=>v.it&&((v.it.tags||[]).includes('consumivel')||v.it.type==='food'||v.it.type==='consumable'));if(!usable.length){$('combatLog').textContent='Você não tem nenhum item utilizável.';return}combatTargetMode='item';el.classList.add('on');for(const {it,i} of usable){const b=document.createElement('button');b.textContent=it.name+' ×'+(it.count||1);b.onclick=()=>{const nn=it.name.toLowerCase(),gain=nn.includes('água')?0:nn.includes('carne')?20:nn.includes('pão')?15:12;hunger=Math.min(100,hunger+gain);let byproduct=null;if(nn.includes('água')){thirst=Math.min(100,thirst+48);byproduct={name:'Garrafa Vazia',type:'material',desc:'Garrafa vazia de água.'}}else if(nn.includes('coca cola')){thirst=Math.min(100,thirst+34);byproduct={name:'Garrafa Vazia de Coca Cola (1 litro)',type:'material',desc:'Garrafa vazia de refrigerante de um litro.'}}else if(nn.includes('refri'))thirst=Math.min(100,thirst+18);if((inventory[i].count||1)>1)inventory[i].count--;else inventory[i]=null;if(byproduct)addItem(byproduct);combatTargets('');enemyThink('Karl usou '+it.name+' e recuperou um pouco de energia.');};el.appendChild(b)}}
-$('combatAttack').onclick=()=>combatTargets('attack');$('combatSkill').onclick=()=>combatTargets('skill');$('combatGuard').onclick=combatGuard;$('combatFlee').onclick=combatFlee;$('combatItem').onclick=combatUseItem;
+$('combatAttack').onclick=()=>combatTargets('attack');$('combatSkill').onclick=()=>AbyssModule.openSkillMenu();$('combatGuard').onclick=combatGuard;$('combatFlee').onclick=combatFlee;$('combatItem').onclick=combatUseItem;
 
 
 function finish(win,reason){mode='end';beep(win?600:90,1,'sawtooth',.1,win?1200:40);$('eh').textContent=win?'ESCAPOU':'COMPLEXO SELADO';
  $('ep').textContent=reason|| (win?'Os três mecanismos giram em sincronia e o portão cede. Karl sobe para a madrugada de Eichenfeld, sem saber quem — ou o quê — ainda caminha lá embaixo.':'O 31º dia terminou. O complexo foi selado e Karl ficou preso sob Eichenfeld.');$('end').classList.add('on')}
 function upd(dt){
- if($('sleepPanel').style.display==='flex'||combatActive||combatTrans||$('elevPanel').classList.contains('on'))return;
+ if(!$('cut').classList.contains('on')||NPCModule.cutActive())NPCModule.update(dt); /* v1.7 NPC doente */
+ if(NPCModule.busy())return; /* v1.7: Karl fica parado enquanto o doente anda até a porta e durante a cutscene */
+ if($('sleepPanel').style.display==='flex'||combatActive||combatTrans||$('elevPanel').classList.contains('on')||$('altarPanel').classList.contains('on'))return;
+ if(AbyssHome.active||AbyssHome.busy){AbyssHome.update(dt);return} /* Lar do Abismo: cena à parte, o resto do mundo fica parado */
  let inputX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),inputY=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
  const camA=cameraAngleTarget,ca=Math.cos(camA),sa=Math.sin(camA);
  let dx=inputX*ca+inputY*sa,dy=-inputX*sa+inputY*ca;
  const depleted=Math.min(hunger,thirst),tooDepleted=depleted<=20,weak=depleted<=50;
- if(tooDepleted)keys.shift=0;
- if(dx||dy){const l=Math.hypot(dx,dy),legFactor=(bodyHP.leftLeg+bodyHP.rightLeg)/150,statusFactor=weak?.58:1,baseSpeed=keys.c?2.2:keys.shift?6.4:4.2,sp=baseSpeed*Math.max(.35,legFactor)*statusFactor*dt/l;P.a=Math.atan2(dy,dx);
+ if(tooDepleted||AbyssModule.isCarryingBody())keys.shift=0;
+ if(dx||dy){const l=Math.hypot(dx,dy),legFactor=(bodyHP.leftLeg+bodyHP.rightLeg)/150,statusFactor=weak?.58:1,baseSpeed=keys.c?2.2:keys.shift?6.4:4.2,sp=baseSpeed*Math.max(.35,legFactor)*statusFactor*AbyssModule.speedFactor()*dt/l;P.a=Math.atan2(dy,dx);
   if(!hit(P.x+dx*sp,P.y,.3))P.x+=dx*sp;if(!hit(P.x,P.y+dy*sp,.3))P.y+=dy*sp}
  if(hit(P.x,P.y,.3)){const n=AIMap.nearestWalkable(P.x,P.y);if(n){P.x=n.x;P.y=n.y}} /* resgate: nunca fica preso em parede/objeto */
- hungerClock+=dt; if(hungerClock>=35){hungerClock=0;hunger=Math.max(0,hunger-1)}
- thirstClock+=dt;if(thirstClock>=24){thirstClock=0;thirst=Math.max(0,thirst-1)}
- sleepClock+=dt;if(sleepClock>=55){sleepClock=0;sleep=Math.max(0,sleep-1)}
+ /* v1.7 barras mais rápidas: fome 20s (era 35), sede 15s (era 24), sono 35s (era 55) */
+ hungerClock+=dt; if(hungerClock>=20){hungerClock=0;hunger=Math.max(0,hunger-1)}
+ thirstClock+=dt;if(thirstClock>=15){thirstClock=0;thirst=Math.max(0,thirst-1)}
+ sleepClock+=dt;if(sleepClock>=35){sleepClock=0;sleep=Math.max(0,sleep-1)}
  if(sleep<=0&&Math.random()<dt*.22){bodyHP.torso=Math.max(1,bodyHP.torso-1)}
  if(hunger<=0&&Math.random()<dt*.8){bodyHP.torso=Math.max(1,bodyHP.torso-1)}
  if(thirst<=0&&Math.random()<dt*1.15){bodyHP.torso=Math.max(1,bodyHP.torso-1)}
@@ -603,16 +692,17 @@ function upd(dt){
  if(keys.shift&&(movingX||movingY)){for(const rat of rats){if(!rat.alive)continue;const dx=rat.x-P.x,dy=rat.y-P.y,d=Math.hypot(dx,dy);const toward=(movingX*dx+movingY*dy)/movingLen/(d||1);if(d<.55&&toward>.45){if(addItem({name:'Carne de rato',type:'food',tags:['consumivel'],desc:'Carne crua de rato. Pode ser comida para recuperar a fome.'})){rat.alive=false;populations.rats=Math.max(0,populations.rats-1);say('Rato capturado! População restante: '+populations.rats+'.',2600)}break}}}
  /* Quando a população chega a zero, nenhum indivíduo ou nascimento permanece. */
  if(populations.rats<=0){populations.rats=0;rats=[]}if(populations.roaches<=0){populations.roaches=0;roaches=[]}
+ AbyssModule.update(dt);AbyssHome.update(dt);
  if(GuardModule.update(dt))return;
   const px=Math.floor(P.x),py=Math.floor(P.y);
  for(let y=py-5;y<=py+5;y++)for(let x=px-5;x<=px+5;x++){if(x<0||y<0||x>=W||y>=H)continue;const i=y*W+x;if(!expl[i]&&T[i]){expl[i]=1;mmc.fillStyle=BD[bandAt(y)].c[0];mmc.fillRect(x,y,1,1)}}
  const b=bandAt(py);if(b!=curB){curB=b;say('SETOR: '+BD[b].n,2200)}
  elapsed+=dt;const daySeconds=12*60,day=Math.floor(elapsed/daySeconds)+1,dayTime=elapsed%daySeconds,gameHour=Math.floor(dayTime/60),gameMin=Math.floor(dayTime%60);
  if(day>31)return finish(0);
- $('hud').innerHTML=`<b>${BD[b].n}</b><br>DIA <b>${String(day).padStart(2,'0')} / 31</b> · MÊS DE 31 DIAS<br>HORÁRIO ${String(gameHour).padStart(2,'0')}:${String(gameMin).padStart(2,'0')} · 12 MIN/DIA<br><span class="hunger">FOME ${hunger}%</span><br><span style="color:#78b7cf">SEDE ${thirst}%</span><br>SONO ${sleep}%<br>RATOS ${populations.rats}/100 · BARATAS ${populations.roaches}/100<br>MECANISMOS ${have.map(h=>h?'◆':'◇').join(' ')}<br><span style="color:#7e8878;font-size:11px">SEED #${seed} · WASD mover · SHIFT correr · C agachar · L girar câmera · E interagir · R novo layout</span>`;
- renderBodyStatus();
- const t=target();if(t&&!$('msg').classList.contains('on'))say(t.t=='elevator'?'[E] Entrar no elevador':t.t=='gate'?'[E] Examinar o portão':(t.t=='door'||t.t=='doubleDoor')?(t.open?'[E] Fechar porta':'[E] Abrir '+(t.t==='doubleDoor'?'portas duplas':'porta')):t.t=='bed'?'[E] Deitar e descansar':t.t=='note'?'[E] Ler o bilhete':t.t=='item'?'[E] Pegar item':t.t=='crate'?'[E] Abrir caixa':t.t=='rat'?'Corra em direção ao rato para capturá-lo':t.t=='roach'?'[E] Capturar barata':'[E] Pegar o mecanismo',400);
- const d=$('dot'),q=$('mm').getBoundingClientRect();d.style.left=(q.left+P.x*q.width/128)+'px';d.style.top=(q.top+P.y*q.height/448)+'px'}
+ {const hs=`<b>${BD[b].n}</b><br>DIA <b>${String(day).padStart(2,'0')} / 31</b> · MÊS DE 31 DIAS<br>HORÁRIO ${String(gameHour).padStart(2,'0')}:${String(gameMin).padStart(2,'0')} · 12 MIN/DIA<br><span class="hunger">FOME ${hunger}%</span><br><span style="color:#78b7cf">SEDE ${thirst}%</span><br>SONO ${sleep}%<br>RATOS ${populations.rats}/100 · BARATAS ${populations.roaches}/100<br>MECANISMOS ${have.map(h=>h?'◆':'◇').join(' ')}<br><span style="color:#c9a0ff">ALMAS ${AbyssModule.countSouls()}${AbyssModule.isCarryingBody()?' · CARREGANDO CORPO':''}</span><br><span style="color:#7e8878;font-size:11px">SEED #${seed} · WASD mover · SHIFT correr · C agachar · F lamparina · L girar câmera · E interagir · R novo layout</span>`;if(hs!==_hudCache){$('hud').innerHTML=hs;_hudCache=hs}}
+ if(currentPanel==='status'&&$('invPanel').classList.contains('on'))renderBodyStatus();
+ const t=target();if(t&&!$('msg').classList.contains('on'))say(t.t=='elevator'?'[E] Entrar no elevador':t.t=='gate'?'[E] Examinar o portão':(t.t=='door'||t.t=='doubleDoor')?(t.open?'[E] Fechar porta':'[E] Abrir '+(t.t==='doubleDoor'?'portas duplas':'porta')):t.t=='coletor'?'[E] Coletor de Almas':t.t=='bed'?'[E] Deitar e descansar':t.t=='note'?'[E] Ler o bilhete':t.t=='item'?'[E] Pegar item':t.t=='crate'?'[E] Abrir caixa':t.t=='rat'?'Corra em direção ao rato para capturá-lo':t.t=='roach'?'[E] Capturar barata':'[E] Pegar o mecanismo',400);
+ const d=$('dot'),q=$('mm').getBoundingClientRect();d.style.left=(q.left+P.x*q.width/128)+'px';d.style.top=(q.top+P.y*q.height/H)+'px'}
 
 /* ---------- renderização 2.5D / Three.js (v1.3.7) ----------
    O mapa lógico continua em células X/Y para não quebrar IA, colisões e saves.
@@ -620,6 +710,8 @@ function upd(dt){
    Cenário e mobiliário são meshes 3D. Seres vivos são sprites billboards. */
 function disposeWorld3D(){
  if(!world3D)return;
+ for(const model of [...ratSprites,...roachSprites]){scene3D.remove(model);model.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(mm=>mm.dispose());else o.material.dispose()}})}
+ objMesh.clear();
  scene3D.remove(world3D);
  world3D.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});
  world3D=null;ratSprites=[];roachSprites=[];chunkItems=[];lastChunkKey=-1;
@@ -644,9 +736,9 @@ function floorVariant(x,y){
  if(isRareF(x,y)&&!isRareF(x-1,y)&&!isRareF(x,y-1)&&!isRareF(x-1,y-1)&&!isRareF(x+1,y-1)&&!isRareF(x-1,y+1)){const q=hash(x+101,y+53);return q<.40?4:q<.72?1:q<.88?3:q<.97?2:5}
  const r=hash(x+31,y+17);return r<.46?0:r<.74?6:7}
 /* paredes: comuns = lisa/desgastada/canos; raras (mural, caixa, quadro, sangue, aviso, cartaz) 1 por bloco de 9x9, com chance menor que 1 */
-const WCOMMON=[[9,9,10,10,11,0,1,2],[9,10,11,0,1,1,2,2],[9,9,10,10,11,0,1,2],[9,10,11,0,1,2],[9,9,10,11,0,1,2],[9,9,10,10,11,0,1,2],[9,10,11,0,1,2]];
-const WRARE=[[3,4,5,7,8,6],[5,8,6,6,7],[6,5,6,7],[6,7,5,6],[4,7,8,5],[3,4,5,7,8,6],[6,7,5]];
-const WRATE=[.60,.55,.45,.50,.60,.60,.35];
+const WCOMMON=[[9,9,10,10,11,0,1,2],[9,10,11,0,1,1,2,2],[9,9,10,10,11,0,1,2],[9,10,11,0,1,2],[9,9,10,11,0,1,2],[9,9,10,10,11,0,1,2],[9,10,11,0,1,2],[9,10,11,0,1,2]];
+const WRARE=[[3,4,5,7,8,6],[5,8,6,6,7],[6,5,6,7],[6,7,5,6],[4,7,8,5],[3,4,5,7,8,6],[6,7,5],[6,7,5]];
+const WRATE=[.60,.55,.45,.50,.60,.60,.35,.12]; /* v1.7: o 8º valor é o Jardim (muros de pedra, quase sem cartazes) */
 function wallVariant(b,x,y){
  const SC=9,sx=Math.floor(x/SC),sy=Math.floor(y/SC);
  if(hash(sx+b*31,sy+77)<WRATE[b]&&x===sx*SC+Math.floor(hash(sx*3+b,sy+9)*SC)&&y===sy*SC+Math.floor(hash(sx+5,sy*3+b)*SC)){const L=WRARE[b];return L[Math.floor(hash(x+13,y+29)*L.length)]}
@@ -659,7 +751,7 @@ function buildFloorAndWalls(){
   if(T[i]){const k=cid*1000+b*10+floorVariant(x,y);if(!floorG.has(k))floorG.set(k,[]);floorG.get(k).push([x,y])}
   else if(wallNear(x,y)){const k=cid*1000+b*100+wallVariant(b,x,y);if(!wallG.has(k))wallG.set(k,[]);wallG.get(k).push([x,y])}
  }
- const floorGeo=new THREE.BoxGeometry(1,.10,1),wallGeo=new THREE.BoxGeometry(1,2.0,1),dummy=new THREE.Object3D(),rough=[.62,.5,.72,.6,.55,.7,.8];
+ const floorGeo=new THREE.BoxGeometry(1,.10,1),wallGeo=new THREE.BoxGeometry(1,2.0,1),dummy=new THREE.Object3D(),rough=[.62,.5,.72,.6,.55,.7,.8,.97];
  for(const [k0,cells] of floorG){const cid=Math.floor(k0/1000),k=k0%1000,b=Math.floor(k/10),v=k%10;
   const m=new THREE.MeshStandardMaterial({map:PXT.floor(b,v),roughness:rough[b],metalness:.04});
   const mesh=new THREE.InstancedMesh(floorGeo,m,cells.length);
@@ -676,7 +768,7 @@ function buildFloorAndWalls(){
 /* sangue, ralos, papéis e manchas de umidade: instâncias planas sobre o piso (determinístico por seed) */
 function buildDecals(){
  const R=rng(((seed||1)*48271+977)|0);
- const BL=[.006,.008,.006,.014,.006,.006,.003],VT=[.0015,.004,.004,.002,.0025,.002,.0015],PP=[.008,.003,.002,.001,.006,.010,.001],DM=[.010,.012,.025,.012,.010,.012,.030];
+ const BL=[.006,.008,.006,.014,.006,.006,.003,.002],VT=[.0015,.004,.004,.002,.0025,.002,.0015,0],PP=[.008,.003,.002,.001,.006,.010,.001,.004],DM=[.010,.012,.025,.012,.010,.012,.030,.020];
  const L={blood:[[],[],[],[]],vent:[],papers:[],damp:[[],[]]};
  const far={blood:new Map(),vent:new Map()},free=(k,x,y,d)=>{const bx=Math.floor(x/d),by=Math.floor(y/d),M=far[k];for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const l=M.get((bx+i)+','+(by+j));if(l)for(const q of l)if(Math.hypot(q[0]-x,q[1]-y)<d)return false}const key=bx+','+by;if(!M.has(key))M.set(key,[]);M.get(key).push([x,y]);return true};
  for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){
@@ -704,8 +796,8 @@ function buildFixtures(){
  lampSpots=[];
  const doorCells=new Set();for(const o of OBJ)if(o.t==='door'||o.t==='doubleDoor')for(let n=0;n<(o.w||1);n++)doorCells.add((o.x+(o.axis==='h'?n:0))+','+(o.y+(o.axis==='v'?n:0)));
  const nearDoor=(cx,cy)=>{for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++)if(doorCells.has((cx+i)+','+(cy+j)))return true;return false};
- const dirs=[[0,-1],[1,0],[0,1],[-1,0]],PR=[.62,.5,.3,.22,.55,.6,.15],COL=[0xffe2b0,0xcfe9d6,0xf2c58a,0xe8a878,0xdff0dc,0xffd9a0,0x9fb7d0],INT=[7,6,5,4.5,6.5,6,3.5],POOL=['warm','cool','warm','red','cool','warm','cool'];
- const items=[[],[],[],[],[],[],[]];
+ const dirs=[[0,-1],[1,0],[0,1],[-1,0]],PR=[.62,.5,.3,.22,.55,.6,.15,.10],COL=[0xffe2b0,0xcfe9d6,0xf2c58a,0xe8a878,0xdff0dc,0xffd9a0,0x9fb7d0,0xb9d3b0],INT=[7,6,5,4.5,6.5,6,3.5,4.2],POOL=['warm','cool','warm','red','cool','warm','cool','cool'];
+ const items=[[],[],[],[],[],[],[],[]];
  for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){
   if(T[y*W+x]!==1)continue;const band=bandAt(y);
   for(let k=0;k<4;k++){
@@ -757,7 +849,7 @@ function mergeStaticObjects(){
   world3D.updateMatrixWorld(true);
   const buckets=new Map(),victims=[];
   for(const grp of world3D.children){
-   if(!grp.isGroup)continue;
+   if(!grp.isGroup||grp.userData.dynamic)continue;
    grp.traverse(m=>{
     if(!m.isMesh||m.isInstancedMesh)return;
     const mt=m.material;
@@ -792,10 +884,19 @@ function mergeStaticObjects(){
  }catch(err){console.warn('ABISM: fusão estática falhou; mantendo meshes individuais.',err)}
 }
 
+/* grupos 3D de objetos interativos (fora da fusão estática) — Map para não entrar no snapshot do save */
+const objMesh=new Map(),DYNAMIC_T=['door','doubleDoor','mech','note','item','altar','coletor'];
+function refreshObjectMesh(o){
+ if(!o||!world3D){worldNeedsBuild=true;return}
+ const old=objMesh.get(o);if(!old){worldNeedsBuild=true;return}
+ world3D.remove(old);const ix=chunkItems.indexOf(old);if(ix>=0)chunkItems.splice(ix,1);
+ old.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material){if(Array.isArray(n.material))n.material.forEach(mm=>mm.dispose());else n.material.dispose()}});
+ const g=buildObject3D(o);chunkItems.push(g);updateChunks(P.x,P.y,true);
+}
 function buildObject3D(o){
  const x=o.x+(o.w||1)/2,z=o.y+.5,w=(o.w||1)*.88,band=bandAt(o.y),sterile=[0,4].includes(band),dark=[2,3].includes(band);
  const wood=dark?0x40352c:0x66503a,metal=dark?0x454644:0x68716c,linen=sterile?0xc4c7bd:0x77746a;
- const group=new THREE.Group();group.userData.chunk=Math.max(0,Math.min(H-1,o.y>>4<<4))/CH*CH_COLS+Math.max(0,Math.min(W-1,o.x))/CH|0;world3D.add(group);
+ const group=new THREE.Group();group.userData.chunk=Math.max(0,Math.min(H-1,o.y>>4<<4))/CH*CH_COLS+Math.max(0,Math.min(W-1,o.x))/CH|0;world3D.add(group);if(DYNAMIC_T.includes(o.t)){group.userData.dynamic=true;objMesh.set(o,group)}
  const bx=(xx,zz,ww,hh,dd,c,yy,opts={})=>addBox(group,xx,zz,ww,hh,dd,c,{y:yy,...opts});
  const leg=(xx,zz,yy,h,c=wood,r=.045)=>{const m=addCylinder(group,xx,zz,r,h,c,8);m.position.y=yy+h/2;return m};
  const sign=(label,color=0x40352b)=>{
@@ -850,6 +951,36 @@ function buildObject3D(o){
    for(const xx of [x-w*.40,x+w*.40])for(const zz of [z-.20,z+.20])leg(xx,zz,.04,.45,0x606d69,.025);
    break;
   }
+  case 'stairs':{AbyssHome.buildStairs(o,group);break}
+  case 'altar':{
+   // Altar do Deus do Abismo: pedra negra, runas rubras e um orbe flutuante (animado por AbyssModule.animate).
+   addBox(group,x,z,1.78,.16,.95,0x15111a);
+   addBox(group,x,z,1.46,.62,.72,0x2b2630,{y:.47});
+   addBox(group,x,z,1.66,.12,.86,0x3a3342,{y:.84});
+   for(const sx of[-.7,.7])addBox(group,x+sx,z-.28,.16,1.05,.16,0x1b1720);
+   const runeM=addBox(group,x,z+.37,1.1,.08,.02,0x7a1030,{y:.5,castShadow:false});runeM.material.emissive=new THREE.Color(0xa01040);runeM.material.emissiveIntensity=1.2;
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(.3,.025,8,28),new THREE.MeshStandardMaterial({color:0x9a2050,emissive:0xc0245c,emissiveIntensity:1.2}));
+   ring.rotation.x=Math.PI/2;ring.position.set(x,1.3,z);group.add(ring);
+   const orb=new THREE.Mesh(new THREE.SphereGeometry(.15,18,14),new THREE.MeshStandardMaterial({color:0xff4a7a,emissive:0xd81b50,emissiveIntensity:1.5,roughness:.3}));
+   orb.position.set(x,1.3,z);group.add(orb);
+   group.userData.abyss={orb,ring};break}
+  case 'coletor':{
+   // Coletor de Almas: câmara de vidro com rotor, moega escura para o corpo e lâmpada de estado.
+   const steel=0x4b5553,dk=0x1b211f;
+   addBox(group,x,z,1.84,.5,.86,steel,{metalness:.25});
+   addBox(group,x,z,1.52,.07,.72,dk,{y:.54});
+   const glass=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.98,20,1,true),new THREE.MeshStandardMaterial({color:0x9fe8ff,emissive:0x2a8fb0,emissiveIntensity:.35,transparent:true,opacity:.42,side:THREE.DoubleSide,depthWrite:false}));
+   glass.position.set(x-.4,1.06,z);group.add(glass);
+   const rotor=new THREE.Group();rotor.position.set(x-.4,1.06,z);
+   const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,.86,8),mat(0x8a9390,.4,.5));rotor.add(shaft);
+   for(const a of[0,Math.PI/2]){const arm=new THREE.Mesh(new THREE.BoxGeometry(.5,.05,.05),mat(0x8a9390,.4,.5));arm.rotation.y=a;arm.position.y=.2;rotor.add(arm)}
+   group.add(rotor);
+   addBox(group,x-.4,z,.78,.06,.78,dk,{y:1.58});
+   addBox(group,x+.52,z,.62,1.05,.74,dk,{y:.9});
+   addBox(group,x+.52,z+.375,.42,.5,.03,0x090c0b,{y:.8,castShadow:false});
+   const lamp=new THREE.Mesh(new THREE.SphereGeometry(.07,12,10),new THREE.MeshStandardMaterial({color:0x38d46a,emissive:0x12a044,emissiveIntensity:1.4}));
+   lamp.position.set(x+.52,1.5,z+.3);group.add(lamp);
+   group.userData.abyss={rotor,glass,lamp};break}
   case 'tank':{
    // Cilindro de vidro com líquido azul-esverdeado emissivo, tampas metálicas e três pés (referência: tanques do laboratório).
    const metal=0x2e3331;
@@ -1064,6 +1195,31 @@ function buildObject3D(o){
   case 'rockhorse':{bx(x,z,.62,.05,.10,0x6e5a3e,.07);bx(x,z+.1,.62,.05,.06,0x6e5a3e,.05);bx(x,z,.46,.24,.16,0x8a7550,.42);
    bx(x-.26,z,.12,.30,.12,0x8a7550,.62);bx(x-.34,z,.18,.12,.10,0x8a7550,.78);bx(x-.17,z,.04,.10,.18,0x4a3a28,.62);
    for(const xx of[x-.17,x+.17])bx(xx,z,.04,.36,.10,0x6e5a3e,.22).rotation.z=xx<x?.25:-.25;break}
+  /* v1.7 OBJETOS DO JARDIM (geometrias simples do Three.js via helpers addBox/addCylinder) */
+  case 'solidPart':break; // bloco invisível: só ocupa células (colisão) ao redor da fonte
+  case 'fountain':{
+   const cx=x,cz=z; // o objeto ocupa 3 tiles na linha central; as linhas acima/abaixo são 'solidPart'
+   addCylinder(group,cx,cz,1.42,.34,0x7d8277,24); // bacia de pedra
+   addCylinder(group,cx,cz,1.22,.06,0x4a4f46,24).position.y=.36;
+   const water=addCylinder(group,cx,cz,1.18,.05,0x1f4f48,24);water.position.y=.32;water.material=new THREE.MeshStandardMaterial({color:0x1d4a44,emissive:0x0d3a36,emissiveIntensity:.9,roughness:.25,metalness:.1});
+   addCylinder(group,cx,cz,.26,.78,0x8a8f83,12).position.y=.55;addCylinder(group,cx,cz,.55,.07,0x7d8277,18).position.y=.92;
+   addCylinder(group,cx,cz,.10,.38,0x69705f,8).position.y=1.12;
+   for(let k=0;k<5;k++){const a=k/5*6.283;bx(cx+Math.cos(a)*1.3,cz+Math.sin(a)*1.3,.18,.16,.18,0x5f6a58,.4)} // musgo na borda
+   break}
+  case 'statue':{
+   bx(x,z,.62,.34,.62,0x7a7e73,.17);bx(x,z,.50,.12,.50,0x6a6e64,.40);
+   bx(x,z,.26,.62,.18,0x8d9186,.78);bx(x-.17,z,.10,.46,.12,0x8d9186,.74);bx(x+.17,z,.10,.30,.12,0x8d9186,.68); // tronco e braços (um quebrado)
+   const hd=addCylinder(group,x,z,.11,.20,0x969a8e,10);hd.position.y=1.22;
+   bx(x+.04,z+.1,.34,.05,.05,0x4c5a44,.52,{castShadow:false}); // trepadeira seca
+   break}
+  case 'deadTree':{
+   addCylinder(group,x,z,.16,1.5,0x3a2f26,7).position.y=.75;addCylinder(group,x,z,.24,.16,0x2e251e,7).position.y=.08;
+   for(const [dx,dz,hh,rr] of[[-.34,.1,1.35,.5],[.30,-.12,1.5,-.55],[.12,.3,1.62,.3],[-.1,-.3,1.25,-.4]]){const br=bx(x+dx,z+dz,.05,.7,.05,0x2e251e,hh);br.rotation.z=rr;br.rotation.x=dz*1.4}
+   break}
+  case 'deadBush':{
+   for(let k=0;k<7;k++){const a=k/7*6.283+o.v,L=.34+((o.v*7+k*3)%5)*.05;const tw=bx(x+Math.cos(a)*.1,z+Math.sin(a)*.1,.025,L,.025,k%3?0x3a3226:0x4a4030,.1+L/2);tw.rotation.z=Math.cos(a)*.6;tw.rotation.x=Math.sin(a)*.6}
+   bx(x,z,.34,.05,.34,0x2a2a1e,.03,{castShadow:false});
+   break}
   default:
    bx(x,z,.4,.22,.4,0x51483d,.12);
  }
@@ -1100,8 +1256,10 @@ function buildWorld3D(){
 let worldJustBuilt=true;
 function syncActorSprites(){
  if(!playerSprite||!P)return;
- playerSprite.position.set(P.x,.015,P.y);playerSprite.scale.set(.82,keys.c?1.1:1.48,1);
- guardSprite.visible=false;GuardModule.sync();
+ playerSprite.position.set(P.x,.015+AbyssHome.stairHeight(P.x,P.y),P.y);playerSprite.scale.set(.82,keys.c?1.1:1.48,1);
+ guardSprite.visible=false;GuardModule.sync();NPCModule.sync(); // v1.7
+ /* v1.7 JARDIM: luar de uma noite sem teto — luz ambiente e 'lua' sobem suavemente dentro do anexo e voltam ao normal fora dele */
+ {const gar=bandAt(P.y)===7;if(ambient3D){ambient3D.intensity+=((gar?.7:VIS.ambient)-ambient3D.intensity)*.08;ambient3D.color.lerp(new THREE.Color(gar?0x8fa6b8:0x71806c),.08)}if(shadowSun){shadowSun.intensity+=((gar?.75:.035)-shadowSun.intensity)*.08}}
  // Modelos de animais acompanham o estado lógico e a direção real de deslocamento.
  while(ratSprites.length<rats.length){const model=makeCreatureModel('rat');scene3D.add(model);ratSprites.push(model)}
  ratSprites.forEach((model,i)=>{const a=rats[i];model.visible=!!(a&&a.alive&&Math.hypot(a.x-P.x,a.y-P.y)<42);if(!a)return;model.position.set(a.x,.012,a.y);model.rotation.y=-(a.heading??0);model.rotation.z=Math.sin(a.phase||0)*.025;model.position.y=.012+Math.abs(Math.sin(a.phase||0))*.008});
@@ -1113,17 +1271,18 @@ function draw(t){
  if(!renderer3D)initRenderer3D();if(!renderer3D)return;
  if(worldNeedsBuild)buildWorld3D();
  if(!world3D)return;
- syncActorSprites();
- const tx=P.x,tz=P.y;updateChunks(tx,tz,worldJustBuilt);worldJustBuilt=false;
+ if(AbyssHome.active){AbyssHome.render(t);VisionFX.render();return}
+ syncActorSprites();AbyssModule.animate(t);
+ const tx=P.x,tz=P.y,stH=AbyssHome.stairHeight(tx,tz);updateChunks(tx,tz,worldJustBuilt);worldJustBuilt=false;
  // Câmera mais próxima: o jogador ocupa mais espaço e o mapa deixa de aparecer inteiro.
  const orbitDistance=9.5,orbitAngle=cameraAngleTarget;
- const desired=new THREE.Vector3(tx+Math.sin(orbitAngle)*orbitDistance,13.5,tz+Math.cos(orbitAngle)*orbitDistance);
+ const desired=new THREE.Vector3(tx+Math.sin(orbitAngle)*orbitDistance,13.5+stH,tz+Math.cos(orbitAngle)*orbitDistance);
  camera3D.position.lerp(desired,.16);
- camera3D.lookAt(tx,.72,tz);
+ camera3D.lookAt(tx,.72+stH,tz);
  // A lamparina ilumina ao redor de Karl em todas as direções, sem depender para onde ele olha.
  const hasLantern=!!(equipped&&equipped.leftHand==='Lamparina');
- playerLamp.visible=hasLantern;
- playerLamp.position.set(tx,1.15,tz);updateLampPool(tx,tz);
+ playerLamp.visible=hasLantern&&lampOn;
+ playerLamp.position.set(tx,1.15+stH,tz);updateLampPool(tx,tz);
  // Máscara em espaço de tela: abre uma área suave nas estruturas que encobrem Karl.
  const screenPos=new THREE.Vector3(tx,.78,tz).project(camera3D);
  const sx=(screenPos.x*.5+.5)*renderer3D.domElement.width;
@@ -1131,6 +1290,7 @@ function draw(t){
  for(const m of occlusionMaterials){const u=m.userData.occlusionUniforms;if(u){u.playerScreen.value.set(sx,renderer3D.domElement.height-sy);u.viewport.value.set(renderer3D.domElement.width,renderer3D.domElement.height)}}
  if(shadowSun){shadowSun.target.position.set(tx,0,tz);shadowSun.position.set(tx-32,48,tz-28);shadowSun.target.updateMatrixWorld()}
  renderer3D.render(scene3D,camera3D);
+ VisionFX.render(); /* cones de lanterna / ruído desenhados no Canvas 2D por cima do mundo */
 }
 let sleepStage='rps';
 function openSleep(){if(mode!=='game')return;sleepStage='rps';$('sleepTitle').textContent='PEDRA, PAPEL E TESOURA';$('sleepText').textContent='Karl só consegue dormir em uma cama. Antes de descansar, precisa vencer uma partida contra a própria sorte.';$('rpsChoices').style.display='flex';$('sleepHours').style.display='none';$('sleepPanel').style.display='flex'}
@@ -1169,14 +1329,14 @@ $('invPanel').addEventListener('click',e=>{if(e.target===$('invPanel'))closeInve
 // Persistência local de dados extensos com IndexedDB (Java não é executado nativamente neste HTML).
 const DB_NAME='ABISM_Eichenfeld_DB',DB_STORE='worlds';let dbPromise=null;
 function openDB(){if(!('indexedDB'in window))return Promise.reject(new Error('IndexedDB indisponível'));if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(DB_STORE))req.result.createObjectStore(DB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});return dbPromise}
-function snapshot(){return {seed,T,K,OBJ:OBJ.map(o=>({...o})),RM,P:{...P},have:[...have],expl:Array.from(expl),elapsed,curB,guards:GuardModule.serialize(),inventory:inventory.map(i=>i?({...i,tags:i.tags?[...i.tags]:[]}):null),equipped:{...equipped},hunger,hungerClock,thirst,thirstClock,sleep,sleepClock,rats:rats.map(x=>({...x})),roaches:roaches.map(x=>({...x})),burrows:burrows.map(x=>({...x})),organicMatter:organicMatter.map(x=>({...x})),populations:{...populations},ecoClock,bodyHP:{...bodyHP},mind,combatActive:false,itemDB:ITEMDB}}
+function snapshot(){return {seed,T,K,OBJ:OBJ.map(o=>({...o})),RM,P:{...P},have:[...have],expl:Array.from(expl),elapsed,curB,guards:GuardModule.serialize(),npc:NPCModule.serialize(),abyss:AbyssModule.serialize(),inventory:inventory.map(i=>i?({...i,tags:i.tags?[...i.tags]:[]}):null),equipped:{...equipped},hunger,hungerClock,thirst,thirstClock,sleep,sleepClock,rats:rats.map(x=>({...x})),roaches:roaches.map(x=>({...x})),burrows:burrows.map(x=>({...x})),organicMatter:organicMatter.map(x=>({...x})),populations:{...populations},ecoClock,bodyHP:{...bodyHP},mind,combatActive:false,itemDB:ITEMDB}}
 async function saveGame(){if(mode!=='game'||!T)return;try{const db=await openDB();await new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put(snapshot(),'bedSave');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});$('mtoast').textContent='JOGO SALVO';}catch(e){console.warn('Falha ao salvar ABISM:',e)}}
-async function loadGame(){try{const db=await openDB(),data=await new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readonly'),q=tx.objectStore(DB_STORE).get('bedSave');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});if(!data){toast((LANG[language]||LANG['pt-BR']).noSave);return}if(data.T.length!==W*H){toast('SAVE DE VERSÃO ANTERIOR (MAPA INCOMPATÍVEL)');return}worldNeedsBuild=true;seed=data.seed;T=new Uint8Array(data.T);K=new Uint8Array(data.K);OBJ=data.OBJ||[];RM=data.RM||[[],[],[],[],[]];P=data.P;have=data.have;expl=new Uint8Array(data.expl);elapsed=data.elapsed;curB=data.curB;GuardModule.restore(data);guard=null;inventory=data.inventory||Array(36).fill(null);equipped=data.equipped||{};delete equipped.weaponLeft;delete equipped.weaponRight;hunger=data.hunger;thirst=data.thirst??100;thirstClock=data.thirstClock??0;sleep=data.sleep??100;sleepClock=data.sleepClock??0;hungerClock=data.hungerClock;rats=data.rats||[];roaches=data.roaches||[];burrows=data.burrows||[];organicMatter=data.organicMatter||[];populations=data.populations||{rats:rats.length,roaches:roaches.length};ecoClock=data.ecoClock||0;bodyHP=data.bodyHP||{head:35,torso:100,neck:45,shoulders:60,leftArm:65,rightArm:65,leftLeg:75,rightLeg:75,feet:55};mind=data.mind??95;Object.assign(ITEMDB,data.itemDB||{});combatActive=false;OB=new Array(W*H).fill(null);for(const o of OBJ)for(let n=0;n<(o.w||1);n++){const idx=(o.y+(o.axis==='v'?n:0))*W+o.x+(o.axis==='h'?n:0);if(idx>=0&&idx<OB.length&&!((o.t==='door'||o.t==='doubleDoor')&&o.open))OB[idx]=o}mmc.clearRect(0,0,W,H);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;if(expl[i]&&T[i]){mmc.fillStyle=BD[bandAt(y)].c[0];mmc.fillRect(x,y,1,1)}}$('end').classList.remove('on');$('cut').classList.remove('on');document.body.classList.add('ing');mode='game';last=performance.now();lastSave=0;rs();toast(language==='en-US'?'SAVE LOADED':'SALVAMENTO CARREGADO');requestAnimationFrame(loop)}catch(e){console.warn(e);toast((LANG[language]||LANG['pt-BR']).loadFail)}}
+async function loadGame(){try{const db=await openDB(),data=await new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readonly'),q=tx.objectStore(DB_STORE).get('bedSave');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});if(!data){toast((LANG[language]||LANG['pt-BR']).noSave);return}if(data.T.length!==W*H){toast('SAVE DE VERSÃO ANTERIOR (MAPA INCOMPATÍVEL)');return}worldNeedsBuild=true;seed=data.seed;T=new Uint8Array(data.T);K=new Uint8Array(data.K);OBJ=data.OBJ||[];RM=data.RM||[[],[],[],[],[],[],[],[],[],[]];P=data.P;have=data.have;expl=new Uint8Array(data.expl);elapsed=data.elapsed;curB=data.curB;GuardModule.restore(data);NPCModule.restore(data.npc);AbyssModule.restore(data.abyss);guard=null;inventory=data.inventory||Array(36).fill(null);equipped=data.equipped||{};delete equipped.weaponLeft;delete equipped.weaponRight;hunger=data.hunger;thirst=data.thirst??100;thirstClock=data.thirstClock??0;sleep=data.sleep??100;sleepClock=data.sleepClock??0;hungerClock=data.hungerClock;rats=data.rats||[];roaches=data.roaches||[];burrows=data.burrows||[];organicMatter=data.organicMatter||[];populations=data.populations||{rats:rats.length,roaches:roaches.length};ecoClock=data.ecoClock||0;bodyHP=data.bodyHP||{head:35,torso:100,neck:45,shoulders:60,leftArm:65,rightArm:65,leftLeg:75,rightLeg:75,feet:55};mind=data.mind??95;Object.assign(ITEMDB,data.itemDB||{});combatActive=false;AbyssHome.reset();GuardBattle.close();OB=new Array(W*H).fill(null);for(const o of OBJ.filter(q=>q.t!=='stairs'))for(let n=0;n<(o.w||1);n++){const idx=(o.y+(o.axis==='v'?n:0))*W+o.x+(o.axis==='h'?n:0);if(idx>=0&&idx<OB.length&&!((o.t==='door'||o.t==='doubleDoor')&&o.open))OB[idx]=o}mmc.clearRect(0,0,W,H);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;if(expl[i]&&T[i]){mmc.fillStyle=BD[bandAt(y)].c[0];mmc.fillRect(x,y,1,1)}}$('end').classList.remove('on');$('cut').classList.remove('on');document.body.classList.add('ing');mode='game';last=performance.now();lastSave=0;rs();toast(language==='en-US'?'SAVE LOADED':'SALVAMENTO CARREGADO');requestAnimationFrame(loop)}catch(e){console.warn(e);toast((LANG[language]||LANG['pt-BR']).loadFail)}}
 function loop(t){if(mode!='game')return;const dt=Math.min(.05,(t-last)/1000);last=t;upd(dt);if(mode=='game')draw(t);requestAnimationFrame(loop)}
 
 
 /* ---------- elevadores (v1.3.3) ---------- */
-const floorOfBand=b=>({0:'1',4:'1',2:'-1',1:'-2',3:'-3',5:'2',6:'-4'})[b];
+const floorOfBand=b=>({0:'1',4:'1',7:'1',2:'-1',1:'-2',3:'-3',5:'2',6:'-4'})[b]; /* v1.7: banda 7 = Jardim, também Andar 1 */
 let elevBusy=false,elevObj=null,elevCur='1';
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function renderElev(){const el=$('elevBtns');el.innerHTML='';for(const f of FLOOR_ORDER){const has=OBJ.some(o=>o.t==='elevator'&&o.band===FLOOR_BAND[f]);const b=document.createElement('button');b.innerHTML=(f==='1'?'ANDAR 1':'ANDAR '+f)+'<small>'+FLOOR_NAME[f]+'</small>';b.disabled=!has||f===elevCur||elevBusy;if(f===elevCur)b.classList.add('cur');b.onclick=()=>goFloor(f);el.appendChild(b)}$('elevFloor').textContent=elevCur;$('elevExit').disabled=elevBusy}
@@ -1202,10 +1362,10 @@ const ITEMDB={};
 function unequipSlot(s){const n=equipped[s];if(!n)return false;const it={...(ITEMDB[n]||{name:n,type:'equipment',desc:'Item desequipado.'}),name:n,count:1};if(!addItem(it))return false;delete equipped[s];return true}
 /*TEST_HOOK*/
 /* ---------- entrada ---------- */
-addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(UIMobileModule.getMode()==='mobile'&&mode==='game'&&!['escape'].includes(k)&&!$('invPanel').classList.contains('on')&&!$('combatPanel').classList.contains('on')&&!$('elevPanel').classList.contains('on')&&!$('cratePanel').classList.contains('on'))return;
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(UIMobileModule.getMode()==='mobile'&&mode==='game'&&!['escape'].includes(k)&&!$('invPanel').classList.contains('on')&&!$('combatPanel').classList.contains('on')&&!$('elevPanel').classList.contains('on')&&!$('cratePanel').classList.contains('on')&&!$('altarPanel').classList.contains('on'))return;
  if(mode=='menu'){if($('continuePanel').classList.contains('on')&&k==='escape'){closeContinue();return}if($('continuePanel').classList.contains('on'))return;if(k=='arrowup'||k=='w')selM((mi+4)%5);else if(k=='arrowdown'||k=='s')selM((mi+1)%5);else if(k=='enter')menuAct()}
  else if(mode=='cut'){if(k=='enter'||k==' '||k=='arrowright'){e.preventDefault();adv()}else if(k=='escape')toMenu()}
- else if(mode=='game'){if(combatActive){if(k==='escape'){combatFlee();e.preventDefault()}return}if($('sleepPanel').style.display==='flex'){if(k==='escape'){closeSleep();e.preventDefault()}return}if($('invPanel').classList.contains('on')){if(k==='i'||k==='escape'){if(currentPanel==='menu')closeInventory();else{$('backToOptions').click()}e.preventDefault()}return}if($('elevPanel').classList.contains('on')){if(k==='escape')closeElev();e.preventDefault();return}if($('cratePanel').classList.contains('on')){if(k==='escape')closeCrate();e.preventDefault();return}if(k==='l'&&!e.repeat){cameraAngleIndex=(cameraAngleIndex+1)%4;cameraAngleTarget=cameraAngleIndex*Math.PI/2;say('CÂMERA · ÂNGULO '+(cameraAngleIndex+1)+'/4',1200);e.preventDefault();return}keys[k]=1;if(k=='e'){if(bodyHP.leftArm<=0&&bodyHP.rightArm<=0)say('Você perdeu os dois braços e não consegue interagir.',2200);else interact();}else if(k=='r')teleport();else if(k=='escape')toMenu();else if(k=='i'){openInventory();e.preventDefault()};if(k.startsWith('arrow')||k==' ')e.preventDefault()}
+ else if(mode=='game'){if(NPCModule.cutActive()){if(k=='enter'||k==' '||k=='arrowright'){e.preventDefault();NPCModule.adv()}return} /* v1.7 */if(combatActive){if(k==='escape'){combatFlee();e.preventDefault()}return}if($('altarPanel').classList.contains('on')){if(k==='escape'||k==='e')AbyssModule.closeAltar();e.preventDefault();return}if($('sleepPanel').style.display==='flex'){if(k==='escape'){closeSleep();e.preventDefault()}return}if($('invPanel').classList.contains('on')){if(k==='i'||k==='escape'){if(currentPanel==='menu')closeInventory();else{$('backToOptions').click()}e.preventDefault()}return}if($('elevPanel').classList.contains('on')){if(k==='escape')closeElev();e.preventDefault();return}if($('cratePanel').classList.contains('on')){if(k==='escape')closeCrate();e.preventDefault();return}if(k==='l'&&!e.repeat){cameraAngleIndex=(cameraAngleIndex+1)%4;cameraAngleTarget=cameraAngleIndex*Math.PI/2;say('CÂMERA · ÂNGULO '+(cameraAngleIndex+1)+'/4',1200);e.preventDefault();return}if(k==='f'){if(!e.repeat)toggleLamp();e.preventDefault();return}keys[k]=1;if(k=='e'){if(bodyHP.leftArm<=0&&bodyHP.rightArm<=0)say('Você perdeu os dois braços e não consegue interagir.',2200);else interact();}else if(k=='r')teleport();else if(k=='escape')toMenu();else if(k=='i'){openInventory();e.preventDefault()};if(k.startsWith('arrow')||k==' ')e.preventDefault()}
  else if(mode=='end'){if($('end').classList.contains('gameover')){toMenu();$('end').classList.remove('gameover');}else if(k=='r'||k=='enter')teleport();else if(k=='escape')toMenu()}});
 addEventListener('keyup',e=>delete keys[e.key.toLowerCase()]);
 $('er').onclick=()=>teleport();$('em').onclick=toMenu;$('end').addEventListener('pointerdown',()=>{if($('end').classList.contains('gameover')){toMenu();$('end').classList.remove('gameover')}});
