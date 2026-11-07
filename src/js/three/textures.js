@@ -23,9 +23,9 @@ const PXT=(()=>{
   t.magFilter=smooth?THREE.LinearFilter:THREE.NearestFilter;t.minFilter=THREE.LinearMipmapLinearFilter;t.anisotropy=4;
   cache[key]=t;return t};
  /* paletas por setor: 0 Pacientes · 1 Experimentos · 2 Subterrâneo · 3 Prisão · 4 Medicação */
- const FLOOR=['#9a9d94','#6a7c80','#58564c','#665a5a','#939890','#6f6a5c','#2f3338'];
- const PLASTER=['#a9aba4','#7c8d90','#6f6b60','#7a6e6e','#a6aba4','#847a68','#4b535b'];
- const DADO=['#6c716b','#24383d','#2d2a24','#3a2b2d','#5f6a63','#3b3023','#1c2228'];
+ const FLOOR=['#9a9d94','#6a7c80','#58564c','#665a5a','#939890','#6f6a5c','#2f3338','#55633f'];
+ const PLASTER=['#a9aba4','#7c8d90','#6f6b60','#7a6e6e','#a6aba4','#847a68','#4b535b','#6f7a66'];
+ const DADO=['#6c716b','#24383d','#2d2a24','#3a2b2d','#5f6a63','#3b3023','#1c2228','#3c4a36'];
  /* v1.5: Andar 2 (refs. 1,2,3,5): 4 temas de parede · Andar 1 (ref. 4): paredes claras chamuscadas, piso de ladrilho claro com cinzas */
  const T2P=['#9b9b95','#6f7a66','#3a5757','#a39a86'],T2D=['#3c3c3a','#434b3f','#1b2c2e','#6b5f4e'];
  const flake=(g,R,pl,n,SPL)=>{for(let i=0;i<n;i++){const x=Math.floor(R()*32),y=Math.floor(R()*(SPL-3)),w=2+Math.floor(R()*5),h=2+Math.floor(R()*4);px(g,x,y,sh(pl,.35),.8,w,h);px(g,x,y,sh(pl,1.35),.55,w,1);px(g,x,y+h,sh(pl,1.25),.4,w,1)}};
@@ -51,7 +51,7 @@ const PXT=(()=>{
 
  /* piso por família de andar: 'tile' quadriculado (Andar 1, Medicação, -3, -4) · 'wood' tábuas (Andar 2) · 'concrete' laje (-1) · 'panel' placas de laboratório (-2)
     v: 0/6/7 = variações comuns do próprio andar · 1-5 = raras (mancha, rachadura, ladrilho escuro, riscos, óleo) */
- const FAM=['tile','panel','concrete','tile','tile','wood','tile'];
+ const FAM=['tile','panel','concrete','tile','tile','wood','tile','grass'];
  const baseFloor=(g,R,b,fam,v)=>{
   if(fam==='tile'){
    for(let ty=0;ty<4;ty++)for(let tx=0;tx<4;tx++){const chk=v===7?((tx+ty)&1?.8:1.12):1;px(g,tx*8,ty*8,sh(b,(.78+R()*.34)*chk*(v===6?1.08:1)),1,8,8)}
@@ -65,6 +65,11 @@ const PXT=(()=>{
     else{px(g,0,r*8,c,1,32,8);px(g,0,r*8,[22,16,10],.8,32,1);px(g,Math.floor(R()*32),r*8,[18,12,8],.9,1,8)}
     for(let k=0;k<5;k++){const gx=Math.floor(R()*32),gy=r*8+1+Math.floor(R()*6);if(v===6)px(g,r*8+1+Math.floor(R()*6),gx,sh(c,.7),.5,1,2+Math.floor(R()*8));else px(g,gx,gy,sh(c,.7),.5,2+Math.floor(R()*8),1)}}
    speckle(g,0,0,32,32,[90,70,50],120,R,.5,1.2,.4)}
+  else if(fam==='grass'){ /* v1.7 JARDIM: grama morta, terra e pedrinhas */
+   px(g,0,0,sh(b,.9),1,32,32);speckle(g,0,0,32,32,b,260,R,.6,1.45,.5);
+   for(let i=0;i<26;i++){const gx=Math.floor(R()*32),gy=Math.floor(R()*30);px(g,gx,gy,sh(b,R()<.5?1.35:.6),.7,1,2+Math.floor(R()*3))}
+   for(let i=0;i<4;i++)px(g,Math.floor(R()*30),Math.floor(R()*30),[104,88,62],.75,2+Math.floor(R()*3),2);
+   for(let i=0;i<3;i++)px(g,Math.floor(R()*31),Math.floor(R()*31),[132,130,118],.8,1,1)}
   else if(fam==='concrete'){const c=sh(b,v===7?1.1:v===6?.92:1);px(g,0,0,c,1,32,32);speckle(g,0,0,32,32,c,320,R,.5,1.4,.5);
    px(g,0,15,sh(c,.4),.8,32,1);px(g,15,0,sh(c,.4),.8,1,32);px(g,0,16,sh(c,1.3),.25,32,1);
    for(let i=0;i<(v===6?9:3);i++)px(g,Math.floor(R()*32),Math.floor(R()*32),sh(c,1.5),.6,1+Math.floor(R()*2),1+Math.floor(R()*2));
