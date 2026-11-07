@@ -22,6 +22,6 @@ body.control-mobile.portrait-mobile.ing #orientationPrompt{display:flex}
 .mobileBtn:active,.mobileBtn.pressed{background:#39442f;border-color:#e8b86a;color:#ffe0a0}
 .mobilePad .mobileBtn{font-size:18px}
 .mobilePad [data-key="w"]{grid-column:2;grid-row:1}.mobilePad [data-key="a"]{grid-column:1;grid-row:2}.mobilePad [data-key="s"]{grid-column:2;grid-row:2}.mobilePad [data-key="d"]{grid-column:3;grid-row:2}.mobilePad [data-key="shift"]{grid-column:2;grid-row:3;font-size:10px}.mobilePad [data-key="c"]{grid-column:3;grid-row:3;font-size:10px}
-@media(max-width:520px){.mobilePad{left:8px;grid-template-columns:repeat(3,45px);grid-template-rows:repeat(3,43px);gap:4px}.mobileActions{right:8px;grid-template-columns:repeat(2,minmax(60px,76px));gap:5px}.mobileBtn{font-size:9px;padding:5px 3px;min-height:40px}#hud{max-width:45vw;font-size:10px}#mm{width:100px;height:125px}}
+@media(max-width:520px){.mobilePad{left:8px;grid-template-columns:repeat(3,45px);grid-template-rows:repeat(3,43px);gap:4px}.mobileActions{right:8px;grid-template-columns:repeat(2,minmax(60px,76px));gap:5px}.mobileBtn{font-size:9px;padding:5px 3px;min-height:40px}#hud{max-width:45vw;font-size:10px}#mm{width:56px;height:196px}}
 
 
