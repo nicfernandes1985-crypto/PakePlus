@@ -3,15 +3,17 @@
  * DEPENDE DE: nada (apenas dados)
  * NÃO PODE ALTERAR: Script clássico (sem import/export): declarações top-level viram escopo global de script, compartilhado entre os arquivos. nenhum valor: BD/ECOLOGY/LOOT_TABLE definem geração e balanceamento
  */
-const W=128,H=448,TS=30;
+const W=128,H=512,TS=30; /* v1.7: H 448→512 (+64 linhas para o anexo JARDIM) */
 const BD=[
 {n:'ANDAR 1 · PACIENTES E ALA DE CIRURGIA',y:0,h:64,m:9,x:16,cw:2,c:['#7c8474','#737b6b'],w:'#262a24',e:'#566050'},
-{n:'ANDAR -2 · SETOR DE EXPERIMENTOS',y:128,h:64,m:8,x:14,cw:2,c:['#5a7b83','#527279'],w:'#16252a',e:'#3b6069'},
-{n:'ANDAR -1 · SUBTERRÂNEO',y:192,h:64,m:6,x:11,cw:1,c:['#413e37','#3a3731'],w:'#110f0d',e:'#2f2b26'},
-{n:'ANDAR -3 · SETOR DA PRISÃO',y:256,h:64,m:8,x:13,cw:2,c:['#514747','#493f40'],w:'#21191b',e:'#74504d'},
+{n:'ANDAR -2 · SETOR DE EXPERIMENTOS',y:192,h:64,m:8,x:14,cw:2,c:['#5a7b83','#527279'],w:'#16252a',e:'#3b6069'},
+{n:'ANDAR -1 · SUBTERRÂNEO',y:256,h:64,m:6,x:11,cw:1,c:['#413e37','#3a3731'],w:'#110f0d',e:'#2f2b26'},
+{n:'ANDAR -3 · SETOR DA PRISÃO',y:320,h:64,m:8,x:13,cw:2,c:['#514747','#493f40'],w:'#21191b',e:'#74504d'},
 {n:'ANDAR 1 · SETOR DA MEDICAÇÃO (ANEXO)',y:64,h:64,m:8,x:13,cw:2,c:['#6b7770','#596a62'],w:'#18231e',e:'#527064'},
-{n:'ANDAR 2 · DORMITÓRIOS E BIBLIOTECA',y:320,h:64,m:8,x:13,cw:2,c:['#6c6658','#645e51'],w:'#26211b',e:'#6b5a45'},
-{n:'ANDAR -4 · O ABISMO',y:384,h:64,m:8,x:13,cw:2,c:['#2c3238','#272c32'],w:'#0c0f12',e:'#26313b'}];
+{n:'ANDAR 2 · DORMITÓRIOS E BIBLIOTECA',y:384,h:64,m:8,x:13,cw:2,c:['#6c6658','#645e51'],w:'#26211b',e:'#6b5a45'},
+{n:'ANDAR -4 · O ABISMO',y:448,h:64,m:8,x:13,cw:2,c:['#2c3238','#272c32'],w:'#0c0f12',e:'#26313b'},
+/* v1.7 NOVO ANEXO (índice/banda 7): JARDIM, logo abaixo do anexo da Medicação (Andar 1). m=22 → poucas salas, enormes e abertas. Verde/terra/cinza. */
+{n:'ANDAR 1 · JARDIM (ANEXO)',y:128,h:64,m:22,x:30,cw:3,c:['#4d5a3c','#58503a'],w:'#5b6355',e:'#6f7f5a'}];
 const MECH=['Você encontra a chave-mestra no cofre do diretor. Mecanismo 1 de 3.','Você arranca o cilindro de ignição do aparelho. Mecanismo 2 de 3.','Você gira a válvula de pressão até travar. Mecanismo 3 de 3.'];
 const ECOLOGY={rats:{maxPopulation:100,reproductionSeconds:240,activeLimit:8},roaches:{maxPopulation:100,reproductionSeconds:150,activeLimit:14}};
 const SLOTS=[['head','Cabeça'],['torso','Tronco'],['shoulders','Ombros'],['neck','Pescoço'],['accessory1','Acessório 1'],['accessory2','Acessório 2'],['accessory3','Acessório 3'],['leftHand','Mão esquerda'],['rightHand','Mão direita'],['legs','Pernas'],['feet','Pés']];const LEFT_SLOTS=['head','shoulders','neck','accessory1','leftHand','legs'];const RIGHT_SLOTS=['torso','accessory2','accessory3','rightHand','feet'];
