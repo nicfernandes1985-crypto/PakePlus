@@ -21,4 +21,4 @@
 .itemBtn{text-align:left}.itemBtn:disabled{opacity:.35;cursor:not-allowed}
 .invHint{color:#899783;font-size:11px;line-height:1.6;margin:12px 0}
 .hpRow{display:flex;align-items:center;gap:7px}.hpTrack{height:5px;background:#352b29;flex:1;min-width:48px}.hpFill{height:100%;background:#9d5148}
-@media(max-width:650px){#mm{width:66px;height:231px}}
+@media(max-width:650px){#mm{width:66px;height:264px}}
