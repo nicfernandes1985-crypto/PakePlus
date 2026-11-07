@@ -1,0 +1,27 @@
+/* elevator.css
+ * EXPORTA: #elevPanel, .elevCab, .elevDoors, .elevBtns, @keyframes elevShake
+ * DEPENDE DE: nada
+ * NÃO PODE ALTERAR: ordem de importação em index.css (a cascata depende dela); o conteúdo é cópia literal do <style> original, linhas 105-126
+ */
+#elevPanel{position:fixed;inset:0;z-index:320;background:#020403f2;display:none;align-items:center;justify-content:center;padding:14px}
+#elevPanel.on{display:flex}
+.elevCab{width:min(640px,96vw);display:grid;grid-template-columns:1fr 190px;background:#1a1d1b;border:2px solid #6d746c;box-shadow:0 0 70px #000,inset 0 0 40px #000}
+.elevCab.shake{animation:elevShake .11s infinite}
+.elevCab.shake2{animation:elevShake .07s infinite}
+@keyframes elevShake{0%{transform:translate(0,0)}25%{transform:translate(-2px,1px)}50%{transform:translate(2px,-2px)}75%{transform:translate(-1px,-1px)}100%{transform:translate(1px,2px)}}
+.elevDoors{position:relative;min-height:320px;overflow:hidden;background:#0a0c0b;border-right:2px solid #6d746c}
+.elevDoors:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,#3b4540,#0b0d0c 80%)}
+.elevDoors i{position:absolute;top:0;bottom:0;width:50%;background:linear-gradient(90deg,#7b837d,#a2aaa3 45%,#6a716b);border:1px solid #2b302d;transition:transform 1.1s cubic-bezier(.5,0,.3,1);z-index:2}
+.elevDoors i:first-child{left:0}.elevDoors i:last-child{right:0}
+.elevDoors.open i:first-child{transform:translateX(-96%)}.elevDoors.open i:last-child{transform:translateX(96%)}
+.elevInner{padding:12px;display:flex;flex-direction:column;gap:8px}
+.elevDisp{background:#050806;border:1px solid #5b6a5a;color:#ff9b45;font:700 34px 'Courier New',monospace;text-align:center;padding:6px;text-shadow:0 0 10px #f70}
+.elevDisp span{font-size:20px;margin-right:8px}
+.elevBtns{display:grid;gap:6px}
+.elevBtns button,#elevExit{background:#262b28;color:#d8dcd0;border:1px solid #78807a;padding:8px;font:14px 'Courier New',monospace;cursor:pointer;text-align:left}
+.elevBtns button small{display:block;font-size:9px;color:#97a093}
+.elevBtns button:hover:not(:disabled){background:#3a443d}
+.elevBtns button:disabled{opacity:.4;cursor:default}.elevBtns button.cur{border-color:#ff9b45;color:#ff9b45;opacity:1}
+#elevMsg{font:italic 12px Georgia,serif;color:#b9c4b2;min-height:32px}
+@media(max-width:650px){.elevCab{grid-template-columns:1fr}.elevDoors{min-height:150px}}
+
