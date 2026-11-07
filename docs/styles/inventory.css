@@ -1,0 +1,24 @@
+/* inventory.css
+ * EXPORTA: #invPanel, .invWindow, .bagGrid/.bagSlot, .equipLayout, .hpRow, @media #mm 650px
+ * DEPENDE DE: hud.css (ordem relativa a #mm de hud-overlay.css)
+ * NÃO PODE ALTERAR: ordem de importação em index.css (a cascata depende dela); o conteúdo é cópia literal do <style> original, linhas 52-70
+ */
+#invPanel{display:none;position:fixed;inset:0;z-index:250;background:#020403ed;align-items:center;justify-content:center;padding:18px}
+#invPanel.on{display:flex}
+.invWindow{width:min(900px,96vw);max-height:90vh;overflow:auto;background:linear-gradient(145deg,#182019,#080b08);border:1px solid #74816c;box-shadow:0 0 70px #000;padding:18px}
+.invHead{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #53604d;padding-bottom:12px;margin-bottom:14px;letter-spacing:3px}
+.invTabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.invTabs button,.invClose,.slotBtn,.itemBtn{background:#101710;color:#cbd5bd;border:1px solid #586653;padding:9px 12px;font:12px 'Courier New';letter-spacing:1px;cursor:pointer}
+.invTabs button.active,.slotBtn.selected{border-color:#d5b66e;color:#f2d99b;background:#292417}
+.invPage{display:none}.invPage.active{display:block}
+.invGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
+#invPanel{z-index:260}.invWindow{max-height:92vh}.invMenu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.invMenu button{min-height:72px;background:#111a13;border:1px solid #64745e;color:#e0e8d7;font:14px 'Courier New';letter-spacing:2px;cursor:pointer}.invMenu button:hover{background:#283629;border-color:#d5b66e}.bagGrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.stackCount{position:absolute;right:3px;bottom:2px;font: bold 10px monospace;color:#f3d58c;text-shadow:0 1px 3px #000}.bagSlot{position:relative;aspect-ratio:1/1;min-width:0;border:1px solid #53604d;background:#070c08;color:#d9e0d2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font:10px 'Courier New';cursor:grab;padding:4px;overflow:hidden}.bagSlot small{font-size:9px;color:#8d9b85;overflow-wrap:anywhere;text-align:center}.bagSlot.filled{background:linear-gradient(145deg,#263126,#101710);border-color:#829077}.bagSlot.dragover{border:2px solid #e8b86a;background:#302817}.bagSlot .ico{font-size:18px}.hunger{color:#e8b86a}.invPage{min-height:140px}#page-inventory .invHint{margin-top:0}
+@media(max-width:520px){.bagGrid{grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}.bagSlot{position:relative;font-size:8px;padding:2px}.invMenu button{font-size:11px;min-height:58px}}
+.slotBtn{text-align:left;min-height:58px}.slotBtn small{display:block;color:#82917b;margin-top:5px}
+.itemGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
+.equipLayout{display:grid;grid-template-columns:minmax(0,1fr) minmax(130px, .9fr) minmax(0,1fr);gap:12px;align-items:stretch;min-height:270px;padding:8px 0}.equipColumn{display:flex;flex-direction:column;justify-content:space-evenly;gap:7px;min-width:0}.equipPlayer{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:#8d9b85;font:9px 'Courier New';letter-spacing:1px;text-align:center}.equipPlayerImage{width:100%;height:225px;max-width:190px;border:1px dashed #899783;background:radial-gradient(ellipse at 50% 35%,#394338,#111811 72%);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#c3cbb9;font-size:11px;letter-spacing:2px;line-height:2}.equipPlayerImage small{color:#82917b;font-size:9px}.equipColumn .slotBtn{width:100%;min-height:42px;text-align:center;padding:6px 4px;font-size:10px}.equipColumn .slotBtn small{font-size:9px;overflow-wrap:anywhere;margin-top:3px}
+@media(max-width:520px){.equipLayout{grid-template-columns:1fr 105px 1fr;gap:5px;min-height:220px}.equipPlayerImage{height:175px;font-size:9px}.equipColumn .slotBtn{font-size:9px;min-height:38px;padding:4px 2px}.equipColumn .slotBtn small{font-size:8px}}
+.itemBtn{text-align:left}.itemBtn:disabled{opacity:.35;cursor:not-allowed}
+.invHint{color:#899783;font-size:11px;line-height:1.6;margin:12px 0}
+.hpRow{display:flex;align-items:center;gap:7px}.hpTrack{height:5px;background:#352b29;flex:1;min-width:48px}.hpFill{height:100%;background:#9d5148}
+@media(max-width:650px){#mm{width:66px;height:264px}}
