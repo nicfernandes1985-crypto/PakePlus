@@ -1,0 +1,15 @@
+/* hud.css
+ * EXPORTA: #g, #hud, #inv, #enemyTag, @keyframes fi
+ * DEPENDE DE: tokens.css
+ * NÃO PODE ALTERAR: ordem de importação em index.css (a cascata depende dela); o conteúdo é cópia literal do <style> original, linhas 42-51
+ */
+#g,#hud{display:none}
+.ing #g,.ing #hud{display:block}
+.ing #menu{display:none}
+#g{position:fixed;inset:0;overflow:hidden;animation:fi 1.2s;background:#050706}#g canvas{display:block;width:100%;height:100%;outline:none}
+@keyframes fi{from{opacity:0}}
+#hud{position:fixed;left:14px;top:calc(12px + env(safe-area-inset-top,0px));z-index:50;font-size:13px;letter-spacing:2px;color:#cfd8c2;text-shadow:0 0 6px #000;line-height:1.7;pointer-events:none}
+#inv{position:fixed;left:14px;bottom:14px;z-index:60;min-width:210px;padding:10px 12px;background:#050806df;border:1px solid #64705b;color:#cbd5bd;font-size:11px;letter-spacing:1px;line-height:1.7;pointer-events:none;box-shadow:0 0 18px #000;display:none}
+.ing #inv{display:block}
+#inv strong{color:#e8b86a;font-weight:400;letter-spacing:2px}
+#enemyTag{color:#d77b70}
