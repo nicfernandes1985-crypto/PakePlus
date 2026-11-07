@@ -1,0 +1,21 @@
+/* cutscene.css
+ * EXPORTA: .ov, #cut, .fr/.art/.ph/.cp/.tt/.tx/.qq/.ft, @keyframes up
+ * DEPENDE DE: tokens.css
+ * NÃO PODE ALTERAR: ordem de importação em index.css (a cascata depende dela); o conteúdo é cópia literal do <style> original, linhas 26-41
+ */
+.ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center}
+#cut{z-index:200;background:#020303;padding:18px;opacity:0;transition:opacity .8s}
+#cut.on{display:flex;opacity:1}
+.fr{width:min(1100px,100%);height:min(720px,94vh);display:grid;grid-template-rows:1fr auto auto;gap:18px;border:1px solid #55564c;background:#080a08;box-shadow:0 0 80px #000,inset 0 0 70px #111;position:relative;overflow:hidden}
+.art{display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 70%,#414039,#1c201d 35%,#080a09 78%)}
+.ph{width:min(80%,680px);padding:24px;border:1px dashed #9a9b82;background:#080b09a8;color:#aeb49f;text-transform:uppercase;letter-spacing:3px;font-size:clamp(11px,1.8vw,16px);line-height:1.8;text-align:center}
+.cp{padding:0 8%;text-align:center;animation:up .7s both}
+.kk{color:#8f987f;font-size:12px;letter-spacing:4px;margin-bottom:12px}
+.tt{font-size:clamp(21px,3vw,32px);font-weight:400;letter-spacing:3px;margin-bottom:14px;text-transform:uppercase;color:#e0e1d5}
+.tx{font-family:Georgia,serif;font-size:clamp(15px,1.9vw,19px);line-height:1.6;max-width:780px;margin:0 auto;white-space:pre-line;color:#c4c7bb}
+.qq{font:italic clamp(16px,2vw,21px)/1.6 Georgia,serif;max-width:760px;margin:14px auto 0;color:#e2dfc9}
+.ft{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 22px 20px;color:#7e8878;font-size:11px;letter-spacing:2px;flex-wrap:wrap}
+.ft button,.btn{border:1px solid #68705e;background:#111710;color:#d5d9c9;padding:10px 16px;font:12px 'Courier New',monospace;letter-spacing:2px;cursor:pointer;margin-left:8px}
+.ft button:hover,.btn:hover{background:#283326}
+#pg{position:absolute;bottom:0;left:0;height:2px;background:#aeb99b;transition:width .3s}
+@keyframes up{from{opacity:0;transform:translateY(20px);filter:blur(5px)}}
